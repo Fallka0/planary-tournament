@@ -1,0 +1,15 @@
+name: Mirror to Org
+on:
+  push:
+    branches: ["**"]
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push mirror
+        run: |
+          git config --local --unset-all http.https://github.com/.extraheader || true
+          git push "https://x-access-token:${{ secrets.ORG_MIRROR_TOKEN }}@github.com/Planary/Tournamount.git" --mirror
