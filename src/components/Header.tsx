@@ -4,11 +4,8 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useTheme } from '@/components/theme/ThemeProvider'
 
 export default function Header() {
-  const { theme, toggleTheme } = useTheme()
-  const [isHovered, setIsHovered] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
 
@@ -57,27 +54,6 @@ export default function Header() {
           <a href="#footer" onClick={() => setIsMenuOpen(false)}>Contact</a>
         </nav>
 
-        <button
-          type="button"
-          className="theme-toggle-btn"
-          onClick={toggleTheme}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          <Image
-            src={
-              theme === 'dark'
-                ? (isHovered ? '/sunFull.svg' : '/sunEmpty.svg')
-                : (isHovered ? '/moonFull.svg' : '/moonEmpty.svg')
-            }
-            alt=""
-            width={24}
-            height={24}
-            className="theme-icon"
-            aria-hidden="true"
-          />
-        </button>
       </div>
     </header>
   )
