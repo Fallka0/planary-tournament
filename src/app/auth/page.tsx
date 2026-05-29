@@ -212,7 +212,7 @@ export default function AuthPage() {
   return (
     <PageShell>
       <PageHero
-        variant="dark"
+        variant="light"
         badge={
           <>
             <span className="h-2 w-2 rounded-full bg-cyan-400" />

@@ -8,7 +8,7 @@ interface TournamentFormHeroProps {
 export default function TournamentFormHero({ title, subtitle }: TournamentFormHeroProps) {
   return (
     <PageHero
-      variant="dark"
+      variant="light"
       title={<h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{title}</h1>}
       description={subtitle}
     />

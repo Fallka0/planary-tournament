@@ -2,7 +2,6 @@
 
 import BlurText from '@/components/react-bits/BlurText'
 import ShinyText from '@/components/react-bits/ShinyText'
-import { useTheme } from '@/components/theme/ThemeProvider'
 import { getDisplayTournamentStatus } from '@/lib/tournaments'
 import type { Tournament } from '@/lib/types'
 
@@ -11,7 +10,6 @@ interface HomeHeroProps {
 }
 
 export default function HomeHero({ tournaments }: HomeHeroProps) {
-  const { theme } = useTheme()
   const stats = [
     { label: 'Total', value: tournaments.length },
     { label: 'Open', value: tournaments.filter((tournament) => getDisplayTournamentStatus(tournament.status) === 'open').length },
@@ -42,8 +40,8 @@ export default function HomeHero({ tournaments }: HomeHeroProps) {
               text="Built for faster setup, cleaner handovers, and a less stressful match-day workflow."
               speed={3}
               className="hero-shiny text-sm"
-              color={theme === 'dark' ? 'rgba(200, 208, 220, 0.78)' : '#64758a'}
-              shineColor={theme === 'dark' ? '#f5f3ff' : '#152235'}
+              color="#64758a"
+              shineColor="#152235"
             />
           </div>
         </div>
