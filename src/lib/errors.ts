@@ -1,6 +1,8 @@
+import { planLimitMessage } from './plan-limits'
+
 export function getErrorMessage(error: unknown, fallback = 'Something went wrong. Please try again.') {
   if (error instanceof Error && error.message.trim()) {
-    return error.message
+    return planLimitMessage(error.message) ?? error.message
   }
 
   if (
@@ -10,7 +12,8 @@ export function getErrorMessage(error: unknown, fallback = 'Something went wrong
     typeof (error as { message?: unknown }).message === 'string' &&
     (error as { message: string }).message.trim()
   ) {
-    return (error as { message: string }).message
+    const { message } = error as { message: string }
+    return planLimitMessage(message) ?? message
   }
 
   return fallback
