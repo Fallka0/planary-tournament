@@ -18,9 +18,12 @@ export default function Footer() {
           <Link href="/teams" className="transition duration-200 hover:text-[color:var(--accent-color)]">
             Teams
           </Link>
-          <Link href="/impressum" className="transition duration-200 hover:text-[color:var(--accent-color)]">
+          <a className="transition duration-200 hover:text-[color:var(--accent-color)]" href="https://planary.ch/impressum">
             Impressum
-          </Link>
+          </a>
+          <a className="transition duration-200 hover:text-[color:var(--accent-color)]" href="https://planary.ch/datenschutz">
+            Datenschutz
+          </a>
         </div>
       </div>
     </footer>

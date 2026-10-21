@@ -36,6 +36,8 @@ export interface Tournament {
   description: string | null
   is_public: boolean | null
   owner_id: string | null
+  /** Set by planary-org when the tournament belongs to an organisation; its plan sets the limits. */
+  organisation_id?: string | null
   owner_name?: string | null
   created_at?: string | null
   current_participants?: number
