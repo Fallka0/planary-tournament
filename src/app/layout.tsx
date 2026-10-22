@@ -9,7 +9,7 @@ const disp = Unbounded({ variable: "--font-disp", subsets: ["latin", "latin-ext"
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://tournament.planary.ch"),
   title: { default: "Planary Tournament", template: "%s · Planary Tournament" },
-  description: "Turniere für Vereine, Schulen und Communities: Anmeldung, Spielplan, Bracket und Beamer-Ansicht.",
+  description: "Turniere mit Anmeldung, Bracket und Beamer.",
 };
 
 export const viewport: Viewport = { themeColor: "#0b0b0f" };

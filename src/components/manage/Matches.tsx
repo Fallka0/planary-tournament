@@ -82,7 +82,7 @@ export function Matches({ v }: { v: TournamentView }) {
           ))}
         </div>
       </div>
-      {t.state === "done" ? <p className="box-s" style={{ marginBottom: 12 }}>Abgeschlossen. Unter Übersicht öffnest du das Turnier wieder, um Resultate zu ändern.</p> : null}
+      {t.state === "done" ? <p className="box-s" style={{ marginBottom: 12 }}>Abgeschlossen. Unter Übersicht kannst du es wieder öffnen.</p> : null}
       {!list.length ? <p className="box-s">{filter === "open" ? "Alle Spiele sind gespielt." : "Noch nichts gespielt."}</p> : null}
       <ul className="mlist">
         {list.map(({ m, code, round, a, b, status }) => {
@@ -175,7 +175,7 @@ export function Matches({ v }: { v: TournamentView }) {
             </>
           }
         >
-          <p className="box-s">Das Spiel gilt wieder als nicht gespielt. Hat der Sieger schon weitergespielt, wird auch dieses Resultat gelöscht.</p>
+          <p className="box-s">Das Spiel gilt wieder als offen, Folgeresultate werden gelöscht.</p>
         </Dialog>
       ) : null}
     </section>

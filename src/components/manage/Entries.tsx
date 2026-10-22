@@ -136,7 +136,7 @@ export function Entries({ v }: { v: TournamentView }) {
         </form>
       ) : (
         <section className="box">
-          <p className="box-s">Das Turnier läuft: Die Teilnehmer stehen fest. Umbenennen geht weiterhin.</p>
+          <p className="box-s">Das Turnier läuft, die Teilnehmer stehen fest.</p>
         </section>
       )}
       {renaming ? (

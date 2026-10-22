@@ -71,7 +71,7 @@ export function TournamentPage({ slug }: { slug: string }) {
       {t.state === "draft" ? (
         <p className="alert info">
           <Ic name="info" />
-          <span className="grow">Entwurf. Nur ihr Organisatoren seht dieses Turnier. Unter Verwalten öffnet ihr die Anmeldung.</span>
+          <span className="grow">Entwurf, nur für Organisatoren sichtbar.</span>
         </p>
       ) : null}
       <article className={`ex tour${t.brand?.color ? " branded" : ""}`} style={brand} aria-labelledby="t-name">

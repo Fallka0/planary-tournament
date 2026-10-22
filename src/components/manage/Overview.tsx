@@ -229,7 +229,7 @@ export function Overview({ v }: { v: TournamentView }) {
           </h2>
           {v.limits?.matchDaySupport ? (
             <>
-              <p className="box-s" style={{ marginBottom: 12 }}>Etwas stimmt nicht? Schreib uns. Läuft das Turnier, sehen wir uns die Anfrage zuerst an.</p>
+              <p className="box-s" style={{ marginBottom: 12 }}>Etwas stimmt nicht? Schreib uns.</p>
               <a className="btn btn-line btn-s" href={support}>
                 <Ic name="msg" small />
                 Etwas stimmt nicht
@@ -238,7 +238,7 @@ export function Overview({ v }: { v: TournamentView }) {
             </>
           ) : (
             <>
-              <p className="box-s" style={{ marginBottom: 12 }}>Support am Turniertag gibt es ab Plan Event. Bis dahin hilft die Hilfe auf planary.ch.</p>
+              <p className="box-s" style={{ marginBottom: 12 }}>Support am Turniertag gibt es ab Plan Event.</p>
               <a className="btn btn-line btn-s" href="https://planary.ch/tournament#faq">
                 Hilfe ansehen
                 <Ic name="arrow-ur" small />

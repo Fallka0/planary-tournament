@@ -346,7 +346,7 @@ export function TournamentForm({
         {value.checkIn && plan.checkIn ? <Num id="tf-cim" label="Check-in öffnet so viele Minuten vor dem Beginn" value={value.checkInMinutes} min={10} max={240} onChange={(n) => set("checkInMinutes", n)} /> : null}
         <Toggle
           label="Warteliste"
-          hint="Ist das Turnier voll, kommen neue Anmeldungen auf die Warteliste und rücken nach, wenn jemand absagt."
+          hint="Ist das Turnier voll, rücken Nachzügler bei Absagen nach."
           checked={value.waitingList && plan.waitingList}
           disabled={!plan.waitingList || started}
           locked={plan.waitingList ? undefined : "ab Plan Event"}
@@ -354,7 +354,7 @@ export function TournamentForm({
         />
         <Toggle
           label="Teams melden ihr Resultat"
-          hint="Eine Seite meldet das Resultat, die andere bestätigt es. Sind sie sich nicht einig, entscheidet ihr."
+          hint="Eine Seite meldet, die andere bestätigt."
           checked={value.confirmResults}
           onChange={(v) => set("confirmResults", v)}
         />
@@ -370,7 +370,7 @@ export function TournamentForm({
         </h2>
         <Toggle
           label="In der Liste der öffentlichen Turniere"
-          hint="Aus: Nur wer den Link hat, findet das Turnier. Bracket und Resultate sind mit dem Link immer sichtbar."
+          hint="Aus: Nur wer den Link hat, findet das Turnier."
           checked={value.isPublic}
           onChange={(v) => set("isPublic", v)}
         />

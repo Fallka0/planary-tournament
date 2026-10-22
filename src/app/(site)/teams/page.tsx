@@ -71,7 +71,7 @@ function Editor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
             Spieler
           </label>
           <textarea id="tm-m" className="ta" placeholder={"Eine Person pro Zeile"} value={d.members} onChange={(e) => setD({ ...d, members: e.target.value })} />
-          <span className="f-h">Turniere verlangen eine Mindestzahl. Bei der Anmeldung zählt die Liste, wie sie dann ist.</span>
+          <span className="f-h">Turniere verlangen eine Mindestzahl Spieler.</span>
         </div>
         <div className="f">
           <label className="f-l" htmlFor="tm-d">
@@ -175,7 +175,7 @@ function Teams() {
             </>
           }
         >
-          <p className="box-s">Turniere, für die das Team angemeldet ist, behalten Name und Spielerliste.</p>
+          <p className="box-s">Angemeldete Turniere behalten Name und Spieler.</p>
         </Dialog>
       ) : null}
     </>
