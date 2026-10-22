@@ -28,7 +28,7 @@ export default function DiscoverPage() {
 
   return (
     <>
-      <PageHead title="Turniere" sub="Öffentliche Turniere von Vereinen, Schulen und Communities. Mit dem Link sieht jede und jeder Bracket, Spielplan und Resultate.">
+      <PageHead title="Turniere" sub="Öffentliche Turniere von Vereinen und Communities.">
         <Link className="btn btn-ink" href="/neu">
           <Ic name="plus" small />
           Turnier erstellen

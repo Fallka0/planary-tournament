@@ -116,7 +116,7 @@ function MyMatch({ v }: { v: TournamentView }) {
       ) : open.disputed ? (
         <p className="alert warn" style={{ marginTop: 12 }}>
           <Ic name="alert" />
-          <span className="grow">Ihr seid euch nicht einig. Die Organisatoren entscheiden; sprich sie vor Ort an.</span>
+          <span className="grow">Ihr seid euch nicht einig. Die Organisatoren entscheiden.</span>
         </p>
       ) : otherReported ? (
         <div className="play-acts">

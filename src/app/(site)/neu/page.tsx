@@ -134,7 +134,7 @@ function Create() {
           <button className="btn btn-line" type="button" disabled={busy} onClick={() => submit(false)}>
             Als Entwurf speichern
           </button>
-          <p className="box-s">Einen Entwurf siehst nur du. Teams und Station legst du danach unter Verwalten fest.</p>
+          <p className="box-s">Einen Entwurf siehst nur du.</p>
         </section>
       </div>
     </div>

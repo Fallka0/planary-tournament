@@ -22,7 +22,7 @@ export function Stations({ v }: { v: TournamentView }) {
         <h2 id="sta-h" className="box-t">
           Stationen
         </h2>
-        <p className="box-s">Wo gespielt wird: Tische, Konsolen, Felder. Jedes Spiel bekommt die Station, die zuerst frei ist; läuft ein Spiel länger, verschiebt sich der Plan dieser Station.</p>
+        <p className="box-s">Tische, Konsolen oder Felder. Jedes Spiel bekommt die nächste freie.</p>
         {list.length ? (
           <ol className="stl">
             {list.map((s, i) => (

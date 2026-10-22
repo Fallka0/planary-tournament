@@ -41,7 +41,7 @@ function Branding({ v }: { v: TournamentView }) {
         </h2>
         {!allowed ? <span className="chip chip-line">ab Plan Event</span> : null}
       </div>
-      <p className="box-s">Erscheinen auf der Turnierseite und auf dem Beamer, statt nur dem Planary-Logo.</p>
+      <p className="box-s">Auf der Turnierseite und dem Beamer.</p>
       {allowed ? (
         <>
           <div className="logo-up">
@@ -218,7 +218,7 @@ function Danger({ v }: { v: TournamentView }) {
     <section className="danger" aria-labelledby="dz-h">
       <div>
         <h2 id="dz-h">Turnier löschen</h2>
-        <p>Löscht das Turnier mit allen Anmeldungen und Resultaten, sofort. Wer den Link hat, sieht danach nichts mehr.</p>
+        <p>Löscht das Turnier mit allen Anmeldungen und Resultaten, sofort.</p>
       </div>
       <button className="btn btn-danger btn-s" type="button" onClick={() => setOpen(true)}>
         Turnier löschen
