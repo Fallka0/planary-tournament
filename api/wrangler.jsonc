@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // planary-tournament-api: tournaments, entries, matches and live updates for tournament.planary.ch.
+  "name": "planary-tournament-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-01",
+  // No database_id: the first deploy creates the database, later commands find it by name.
+  "d1_databases": [{ "binding": "DB", "database_name": "planary-tournament", "migrations_dir": "migrations" }],
+  // Avatars, team pictures and tournament logos.
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "planary-tournament-files" }],
+  // One room per tournament: holds the live connections (beamer, viewers) and sends every change.
+  "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "TournamentRoom" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TournamentRoom"] }],
+  "services": [
+    // Verifies sign-in tokens, worker to worker.
+    { "binding": "AUTH", "service": "planary-auth" },
+    // Plan limits, organisation membership, banners; receives every tournament change.
+    { "binding": "ORG", "service": "planary-org" }
+  ],
+  "routes": [{ "pattern": "tournament-api.planary.ch", "custom_domain": true, "zone_name": "planary.ch" }],
+  "vars": {
+    // The Tournament app (planary-tournament on Vercel).
+    "APP_ORIGINS": "https://tournament.planary.ch,http://localhost:3000",
+    "APP_URL": "https://tournament.planary.ch",
+    // This API's own address, for image links.
+    "API_URL": "https://tournament-api.planary.ch",
+    "PORTAL_URL": "https://portal.planary.ch"
+  },
+  // Secret (wrangler secret put): INTERNAL_KEY, the same value as in planary-org. Without it,
+  // every tournament runs on Gratis limits and planary-org hears nothing.
+  "observability": { "enabled": true }
+}

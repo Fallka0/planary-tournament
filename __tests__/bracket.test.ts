@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildBracketProgressionChanges, createInitialBracketMatches, getScoreValidationMessage, orderKnockoutMatches } from '@/lib/bracket'
-import type { Match, Participant } from '@/lib/types'
+import { buildBracketProgressionChanges, createInitialBracketMatches, getScoreValidationMessage, orderKnockoutMatches } from '@/shared/bracket'
+import type { Match, Participant } from '@/shared/types'
 
 function createMatch(overrides: Partial<Match>): Match {
   return {
@@ -41,10 +41,10 @@ describe('createInitialBracketMatches', () => {
 
 describe('getScoreValidationMessage', () => {
   it('rejects missing, negative, invalid, and tied scores', () => {
-    expect(getScoreValidationMessage('', '1')).toBe('Enter both scores before saving.')
-    expect(getScoreValidationMessage('abc', '1')).toBe('Scores must be valid numbers.')
-    expect(getScoreValidationMessage('-1', '1')).toBe('Scores cannot be negative.')
-    expect(getScoreValidationMessage('2', '2')).toBe('A winner is required, so tied scores are not supported here.')
+    expect(getScoreValidationMessage('', '1')).toBe('Trag beide Resultate ein.')
+    expect(getScoreValidationMessage('abc', '1')).toBe('Resultate müssen Zahlen sein.')
+    expect(getScoreValidationMessage('-1', '1')).toBe('Resultate können nicht negativ sein.')
+    expect(getScoreValidationMessage('2', '2')).toBe('Es braucht einen Sieger, ein Unentschieden geht hier nicht.')
   })
 
   it('accepts valid scores with a clear winner', () => {
