@@ -24,7 +24,7 @@ import {
 import { dropImage, storeImage } from '../lib/files';
 import { bannersFor, limitsFor, membership, PLAN_NAME, sendEvent, type Limits } from '../lib/org';
 import { ensureProfile } from './me';
-import { ApiError, bad, bool, clean, conflict, forbidden, int, MINUTE, notFound, oneOf, randomId, readJson, requireText, RESERVED_SLUGS, SLUG, slugify, time } from '../lib/util';
+import { ApiError, bad, bool, fail, clean, conflict, forbidden, int, MINUTE, notFound, oneOf, randomId, readJson, requireText, RESERVED_SLUGS, SLUG, slugify, time } from '../lib/util';
 
 export const tournamentsApp = new Hono<AppEnv>();
 
@@ -53,10 +53,11 @@ export async function forWrite(c: Context<AppEnv>, need: 'run' | 'score' | 'own'
   return { person, t, b, role, features };
 }
 
-/** After a write: settle, finish when everything is played, publish, answer with the view. */
-export async function done(c: Context<AppEnv>, t: TournamentRow, features: Limits, person: PersonCtx | null) {
+/** After a write: settle, finish when a result decided everything, publish, answer with the view. */
+export async function done(c: Context<AppEnv>, t: TournamentRow, features: Limits, person: PersonCtx | null, opts: { finish?: boolean } = {}) {
   let b = await settle(c.env, t);
-  if (b.t.state === 'live') {
+  // A result that decides the last match ends the tournament (reopening it doesn't end it again).
+  if (opts.finish && b.t.state === 'live') {
     const playable = b.matches.filter((m) => m.participant_a && m.participant_b);
     const open = b.matches.some((m) => !m.winner && (m.participant_a || m.participant_b));
     if (playable.length && !open) {
@@ -97,8 +98,8 @@ interface Settings {
 /** Validates settings against the plan. `base` is the current row (update) or defaults (create). */
 function settingsFrom(b: Record<string, unknown>, base: Settings, limits: Limits['limits'], plan: string): Settings {
   const pick = <T,>(key: string, read: (v: unknown) => T, fallback: T): T => (b[key] === undefined ? fallback : read(b[key]));
-  const mode = pick('mode', (v) => oneOf(v, MODES) ?? bad('Wähl ein Format.', 'invalid_mode'), base.mode) as Settings['mode'];
-  const entryType = pick('entryType', (v) => oneOf(v, ENTRY_TYPES) ?? bad('Solo oder Team?', 'invalid_entry_type'), base.entry_type) as Settings['entry_type'];
+  const mode = pick('mode', (v) => oneOf(v, MODES) ?? fail('Wähl ein Format.', 'invalid_mode'), base.mode) as Settings['mode'];
+  const entryType = pick('entryType', (v) => oneOf(v, ENTRY_TYPES) ?? fail('Solo oder Team?', 'invalid_entry_type'), base.entry_type) as Settings['entry_type'];
   const maxTeams = pick('maxTeams', (v) => int(v, 2, 512, base.max_teams), base.max_teams);
   if (maxTeams > limits.maxTeams) {
     throw new ApiError(403, `Im Plan ${plan} sind bis ${limits.maxTeams} Teams möglich. Für grössere Turniere wechselst du im Portal den Plan.`, 'plan_team_limit');
@@ -114,14 +115,14 @@ function settingsFrom(b: Record<string, unknown>, base: Settings, limits: Limits
   const waitingList = pick('waitingList', (v) => (bool(v) ? 1 : 0), base.waiting_list);
   if (checkIn && !base.check_in && !limits.checkIn) throw new ApiError(403, `Check-in gibt es ab Plan Event. Dein Turnier läuft im Plan ${plan}.`, 'plan_feature');
   if (waitingList && !base.waiting_list && !limits.waitingList) throw new ApiError(403, `Die Warteliste gibt es ab Plan Event. Dein Turnier läuft im Plan ${plan}.`, 'plan_feature');
-  const color = pick('brandColor', (v) => (v === null || v === '' ? null : COLOR.test(String(v).toLowerCase()) ? String(v).toLowerCase() : bad('Die Farbe ist ein Hex-Wert wie #1f1b3a.', 'invalid_color')), base.brand_color);
+  const color = pick('brandColor', (v) => (v === null || v === '' ? null : COLOR.test(String(v).toLowerCase()) ? String(v).toLowerCase() : fail('Die Farbe ist ein Hex-Wert wie #1f1b3a.', 'invalid_color')), base.brand_color);
   if (color && color !== base.brand_color && !limits.branding) throw new ApiError(403, `Eigene Farben gibt es ab Plan Event. Dein Turnier läuft im Plan ${plan}.`, 'plan_feature');
   return {
     name: pick('name', (v) => requireText(v, 'Der Name', 80, { min: 3, code: 'invalid_name' }), base.name),
     game: pick('game', (v) => requireText(v, 'Das Spiel', 60, { code: 'invalid_game' }), base.game),
     mode,
     group_count: sanitizeGroupCount(pick('groupCount', (v) => int(v, 1, 64, base.group_count), base.group_count), mode, maxTeams),
-    match_format: pick('matchFormat', (v) => oneOf(v, FORMATS) ?? bad('Best of 1, 3 oder 5?', 'invalid_format'), base.match_format) as Settings['match_format'],
+    match_format: pick('matchFormat', (v) => oneOf(v, FORMATS) ?? fail('Best of 1, 3 oder 5?', 'invalid_format'), base.match_format) as Settings['match_format'],
     entry_type: entryType,
     team_size: sanitizeTeamSize(pick('teamSize', (v) => int(v, 1, 30, base.team_size), base.team_size), entryType),
     max_teams: maxTeams,

@@ -20,6 +20,10 @@ export class ApiError extends Error {
 }
 
 export const bad = (message: string, code = 'invalid') => new ApiError(400, message, code);
+/** For expressions: `oneOf(v, X) ?? fail('…')`. */
+export function fail(message: string, code = 'invalid'): never {
+  throw bad(message, code);
+}
 export const notFound = (message = 'Das gibt es nicht (mehr).') => new ApiError(404, message, 'not_found');
 export const forbidden = (message = 'Das dürfen nur die Organisatoren.', code = 'forbidden') => new ApiError(403, message, code);
 export const conflict = (message: string, code: string) => new ApiError(409, message, code);
