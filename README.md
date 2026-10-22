@@ -1,411 +1,70 @@
-# Tournamount
+# Planary Tournament
 
-Tournamount is a Next.js + Supabase tournament platform focused on gaming first, while still supporting classic sports.
+Turniere für Vereine, Schulen und Communities at **tournament.planary.ch**: sign-up, schedule, bracket and a beamer view that updates itself. German, "du".
 
-It gives organizers a cleaner way to create events, manage participants or teams, generate brackets, and present a public organizer profile. Players can browse public tournaments, join open events, and track bracket progress from the same app.
+Two parts in this repo:
 
-## Online Version
+| Folder | What | Runs on |
+| --- | --- | --- |
+| `/` (Next.js 16) | The app: public tournament pages, the beamer, creating and running tournaments, teams, profiles | Vercel, `tournament.planary.ch` |
+| `api/` (Cloudflare Worker) | `planary-tournament-api`: D1 database, one Durable Object per tournament for live updates, R2 for images | Cloudflare, `tournament-api.planary.ch` |
 
-The deployed web application is available here:
+`src/shared/` holds the bracket and group-stage logic (and its tests). The API decides with it; the app draws with it.
 
-- [https://m294-d5ns.vercel.app/](https://m294-d5ns.vercel.app/)
+Sign-in is the Planary account (planary-auth). Organisations, plans and their limits come from planary-org; every tournament change is reported back to it for the Console and the customer portal. The app used to run on Supabase. That is gone: the old data was not moved, the new backend starts empty.
 
-## What Tournamount Includes
+## Routes
 
-- Game-first tournament creation with a visual selector for popular PC games
-- Support for real sports and custom game/sport names
-- Public and private tournaments
-- Solo and team-based entries
-- Group stage, knockout, and combined tournament modes
-- Editable brackets and result reporting
-- Team management with roster-size validation
-- Organizer profiles with avatar, banner, bio, and links
-- Public organizer pages
-- Email/password auth plus Google and GitHub OAuth
-- Light and dark mode
-- Responsive UI for desktop and mobile
-- Vercel Analytics and Speed Insights integration
-- User-facing error handling for major fetch and submit flows
+| Route | Screen |
+| --- | --- |
+| `/` | Public tournaments, with search and status filter |
+| `/meine` | Tournaments you run (yourself, as co-organiser, or through your organisation) and play in |
+| `/neu?plan=gratis\|event\|verein&org=<id>` | Create a tournament, in your name or for an organisation |
+| `/<slug>` | The tournament: bracket, groups, schedule, teams, the selected match; sign-up, waiting list, check-in, your next match with reporting and confirming |
+| `/<slug>/beamer` | Full screen, live. Shows the last state without internet (service worker plus the last view kept in the browser) |
+| `/<slug>/verwalten` | Organisers: start (check-in decides the field), participants, matches and results, stations, settings, logo and colour, co-organisers, export, delete |
+| `/teams`, `/profil`, `/veranstalter/<username>` | Your teams, your profile, a public organiser page |
 
-## Tech Stack
+## What the plans unlock
 
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS 4
-- Supabase
-- Framer Motion
-- React Icons
-- Vitest
+The API enforces planary-org's limits (`api/src/lib/org.ts` keeps a copy for when planary-org doesn't answer):
 
-## Frontend and Backend
+| | Gratis | Event | Verein |
+| --- | --- | --- | --- |
+| Teams per tournament | 16 | 128 | 128 |
+| Running at the same time | 1 | 1 | unlimited |
+| Organisers per tournament | 1 | 1 | 5 |
+| Check-in, waiting list, logo and colour, CSV/PDF export, match-day support | no | yes | yes |
 
-### Frontend
+Teams reporting their own results, stations and the delay-aware schedule are in every plan.
 
-The frontend is built with Next.js, React, and TypeScript.
-
-It is responsible for:
-
-- rendering the dashboard, auth, profile, team, and tournament pages
-- handling user interactions such as form input, filtering, joining tournaments, and entering results
-- managing theme behavior, responsive layouts, and client-side UI state
-- calling Supabase from the application to load and update data
-
-The main frontend code lives in:
-
-- `src/app`
-- `src/components`
-- `src/lib`
-
-### Backend
-
-TournamentHub does not use a separate custom Express or Node backend. Instead, it uses Supabase as the backend platform.
-
-Supabase handles:
-
-- database storage
-- authentication
-- row level security
-- public and protected data access
-- storage for profile and team media
-
-The backend-related setup is defined mainly through:
-
-- SQL files in `supabase/`
-- the Supabase client in `src/lib/supabase.ts`
-
-In practice, the frontend talks directly to Supabase. This keeps the architecture simpler and reduces the amount of custom server code that has to be maintained.
-
-## Endpoints and Routes
-
-TournamentHub mainly uses App Router pages instead of a large custom REST API. The important endpoints in this project are therefore the application routes and the Supabase endpoints used behind the scenes.
-
-### Main application routes
-
-- `/`
-  Dashboard with tournament browsing, filtering, and overview cards
-
-- `/auth`
-  Sign in, sign up, remember-me login, and OAuth entry point
-
-- `/profile`
-  Private page where a logged-in user edits their own profile
-
-- `/organizers/[id]`
-  Public organizer profile page
-
-- `/teams`
-  Private page where a logged-in user creates and manages reusable teams
-
-- `/tournaments/new`
-  Tournament creation form
-
-- `/tournaments/[id]`
-  Tournament detail page with participants or teams, status, bracket generation, and result handling
-
-- `/tournaments/[id]/edit`
-  Tournament editing page
-
-- `/tournaments/[id]/bracket`
-  Bracket-focused tournament view
-
-### Supabase endpoints used indirectly
-
-The app also communicates with Supabase through the configured project URL.
-
-This includes:
-
-- Auth endpoints for login, signup, session handling, and OAuth
-- Database access for tables such as:
-  - `profiles`
-  - `tournaments`
-  - `participants`
-  - `matches`
-  - `teams`
-- Storage access for uploaded profile and team media
-
-These endpoints are not written manually inside the project as classic controller routes. They are provided by Supabase and accessed through the Supabase client SDK.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js
-- npm
-
-### Install dependencies
+## Develop
 
 ```bash
 npm install
+npm run dev                 # the app on http://localhost:3000
+npm run typecheck && npm run lint && npm test
+
+cd api
+npm install
+npm run db:migrate:local
+npm run dev                 # the API on http://localhost:8791
+npm test                    # in the Workers runtime with a local D1, R2 and Durable Object
 ```
 
-### Configure environment variables
+For the whole thing locally, also run planary-auth (`wrangler dev --port 8787`) and planary-org (`--port 8790`). The service bindings connect through the local dev registry. Give the API and planary-org the same `INTERNAL_KEY` in their `.dev.vars`, and set `API_URL=http://localhost:8791` in `api/.dev.vars`. Point the app at them with `.env.local` (see `.env.example`).
 
-Create `.env.local` in the project root:
+## Deploy
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+**API** (`api/`):
 
-`NEXT_PUBLIC_APP_URL` is used as the configured app origin fallback for OAuth redirects.
+1. `wrangler d1 create planary-tournament`, `wrangler r2 bucket create planary-tournament-files`, `npm run db:migrate`.
+2. `wrangler secret put INTERNAL_KEY` (the same value as in planary-org).
+3. `npm run deploy`. The first deploy creates the `tournament-api.planary.ch` domain and the Durable Object class.
+4. Check `APP_ORIGINS`, `APP_URL`, `API_URL` and `PORTAL_URL` in `wrangler.jsonc`.
 
-### Set up Supabase
+**App:** Vercel with the variables in `.env.example`. planary-auth already allows `https://tournament.planary.ch` as a return address.
 
-Run these SQL files in the Supabase SQL editor:
+**planary-org:** add `https://tournament.planary.ch` to `PORTAL_ORIGINS` only if the app should call the portal API directly. It doesn't today: everything goes through the Tournament API.
 
-1. `supabase/social-auth-mvp.sql`
-2. `supabase/profile-customization.sql`
-3. `supabase/team-tournaments.sql`
-
-Optional helper scripts:
-
-- `supabase/join-tournament-fix.sql`
-- `supabase/profile-media-storage.sql`
-
-Supporting docs:
-
-- `docs/social-auth-mvp.md`
-- `docs/lb2-projektdokumentation.md`
-- `docs/lb2-testfaelle.md`
-- `docs/lb2-testprotokoll.md`
-
-
-### Start the app
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-This README serves as the startup guide for the project. The application can either be started locally with `npm install` and `npm run dev`, or opened directly via the deployed version on Vercel.
-
-## Scripts
-
-```bash
-npm run dev
-npm run build
-npm run start
-npm run test
-npm run test:watch
-```
-
-- `npm run dev` starts the local development server
-- `npm run build` creates the production build
-- `npm run start` starts the production server
-- `npm run test` runs the Vitest unit test suite once
-- `npm run test:watch` runs Vitest in watch mode
-
-## Unit Tests
-
-Unit tests are already included and currently cover core tournament logic:
-
-- `__tests__/bracket.test.ts`
-  Covers initial bracket generation, score validation, and bracket progression updates
-- `__tests__/tournaments.test.ts`
-  Covers tournament normalization, display-status fallback logic, and dashboard date formatting
-
-Run them with:
-
-```bash
-npm run test
-```
-
-## OAuth Setup
-
-Tournamount supports OAuth through Supabase.
-
-Supported providers:
-
-- Google
-- GitHub
-
-To enable OAuth:
-
-1. Go to `Supabase -> Authentication -> Providers`
-2. Enable the provider
-3. Add the client ID and client secret
-4. Set the correct Site URL and Redirect URLs
-
-Typical redirect values:
-
-- local auth route: `http://localhost:3000/auth`
-- deployed auth route: `https://m294-d5ns.vercel.app/auth`
-- provider callback: `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
-
-## Routes and Endpoints
-
-Tournamount currently does not expose custom Next.js API endpoints such as `src/app/api/*/route.ts`.
-
-Instead, the app is made up of:
-
-- user-facing App Router pages
-- client-side calls to Supabase Auth, Database, and Storage endpoints
-
-### App routes
-
-- `/`
-  Dashboard, tournament discovery, filters, and stats
-- `/auth`
-  Email auth, OAuth sign-in, and account creation
-- `/profile`
-  Organizer profile editing
-- `/teams`
-  Team creation and management
-- `/organizers/[id]`
-  Public organizer profile page
-- `/tournaments/new`
-  Tournament creation flow
-- `/tournaments/[id]`
-  Tournament detail page, participant handling, join/leave, and bracket actions
-- `/tournaments/[id]/edit`
-  Tournament editing flow
-- `/tournaments/[id]/bracket`
-  Standalone bracket management page
-
-### Supabase endpoints used by the app
-
-- `https://YOUR_PROJECT_REF.supabase.co/auth/v1/*`
-  Authentication, OAuth redirects, session handling, and provider callback flow
-- `https://YOUR_PROJECT_REF.supabase.co/rest/v1/*`
-  Database access for tournaments, participants, profiles, teams, and matches
-- `https://YOUR_PROJECT_REF.supabase.co/storage/v1/*`
-  Profile and team media uploads/removals
-
-
-### Main data areas used through Supabase
-
-- `profiles`
-  User profile and organizer identity data
-- `tournaments`
-  Tournament metadata and ownership
-- `participants`
-  Joined players or registered teams
-- `matches`
-  Bracket and stage matches
-- `teams`
-  Team rosters and team media
-
-## Main App Areas
-
-- `src/app/page.tsx`
-  Dashboard, filtering, and tournament discovery
-- `src/app/auth/page.tsx`
-  Sign in, sign up, OAuth, and account onboarding
-- `src/app/tournaments/new/page.tsx`
-  Tournament creation flow
-- `src/app/tournaments/[id]/page.tsx`
-  Tournament details, participant management, joins, and bracket actions
-- `src/app/tournaments/[id]/edit/page.tsx`
-  Tournament editing flow
-- `src/app/tournaments/[id]/bracket/page.tsx`
-  Standalone bracket management page
-- `src/app/teams/page.tsx`
-  Team creation and team management
-- `src/app/profile/page.tsx`
-  Organizer profile editing
-- `src/app/organizers/[id]/page.tsx`
-  Public organizer profile page
-
-## Project Structure
-
-```text
-m294/
-|- __tests__/
-|- docs/
-|- public/
-|- supabase/
-|- src/
-|  |- app/
-|  |- components/
-|  |  |- auth/
-|  |  |- game-sports/
-|  |  |- header/
-|  |  |- home/
-|  |  |- layout/
-|  |  |- profile/
-|  |  |- react-bits/
-|  |  |- theme/
-|  |  `- tournaments/
-|  `- lib/
-`- README.md
-```
-
-## Current Product Direction
-
-Tournamount is no longer just a generic tournament CRUD app. The current app direction includes:
-
-- stronger support for esports and PC game tournaments
-- visual game/sport selection during tournament setup
-- team-based tournament flows
-- better dark mode consistency
-- modular layout and shared UI primitives
-- clearer in-app error messaging for failed loads and actions
-
-## Development Notes
-
-- Supabase is required for auth, tournament data, profiles, teams, and brackets
-- OAuth redirects depend on both Supabase URL configuration and `NEXT_PUBLIC_APP_URL`
-- Theme behavior is driven by the theme provider plus CSS variables in `src/app/globals.css`
-- Some SQL files in `supabase/` are setup scripts rather than runtime migrations, so document any database changes clearly in merge requests
-
-If you see:
-
-```text
-NEXT_PUBLIC_SUPABASE_URL is required
-```
-
-your `.env.local` file is missing or incomplete.
-
-## Deployment
-
-Tournamount can be deployed on Vercel.
-
-Before deploying:
-
-- add the same environment variables in Vercel
-- configure Supabase redirect URLs for the deployed domain
-- make sure the required SQL setup has already been applied in Supabase
-- keep OAuth provider settings in sync with the deployed app URL
-
-## Contributing
-
-Recommended workflow:
-
-1. Create a feature branch
-2. Make focused changes
-3. Run `npm run build`
-4. Run `npm run test` when logic changes are involved
-5. Open a merge request
-
-Guidelines:
-
-- keep components modular and reusable
-- prefer TypeScript-safe changes
-- avoid mixing unrelated refactors into one branch
-- document environment or SQL changes clearly
-- preserve the existing visual direction unless the task calls for a redesign
-
-## Submission Note
-
-For the module submission, the relevant project state is the latest commit on the `master` branch of the group GitLab repository before the submission deadline. The source code is therefore not submitted as a separate archive, but via the GitLab repository history.
-
-## AI Usage Reflection
-
-AI was used during this project as a supporting tool for implementation, debugging, refactoring, documentation, and wording improvements. The generated suggestions were not copied blindly into the project. Instead, they were reviewed, adapted, tested, and integrated into the existing codebase where they made sense.
-
-Examples of AI-supported work in this project include:
-
-- improving UI text and documentation wording
-- debugging Git, environment, and dependency issues
-- restructuring React and Next.js components
-- refining bracket logic, validation, and team tournament features
-- preparing README and project documentation sections
-
-The final responsibility for the submitted solution, the architecture decisions, the testing, and the integrated code remains with the project team. AI-generated code and text were treated as drafts and then revised to match the project's requirements and implementation.
-
-## License
-
-This repository currently does not define a separate license file.
+**Supabase:** the app no longer uses it. Delete the old project (and its auth users and storage) in the Supabase dashboard once you no longer need the data.

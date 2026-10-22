@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Chip, Dialog, Empty, Ic, Table, Td } from "../ui";
 import { useRun } from "./useRun";
+import { initials } from "@/lib/fmt";
 import type { Entry, TournamentView } from "@/lib/types";
 
 export function Entries({ v }: { v: TournamentView }) {
@@ -33,7 +34,7 @@ export function Entries({ v }: { v: TournamentView }) {
       <tr className="dt-r" key={e.id}>
         <Td>
           <span className="who">
-            <span className="av">{waitingList ? i + 1 : e.name.slice(0, 2).toUpperCase()}</span>
+            <span className="av">{waitingList ? i + 1 : initials(e.name)}</span>
             <span>
               <b>{e.name}</b>
               <span>{e.members.length ? e.members.join(", ") : waitingList ? "Warteliste" : new Date(e.createdAt).toLocaleDateString("de-CH")}</span>

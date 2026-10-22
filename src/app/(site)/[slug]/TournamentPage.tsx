@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { Play } from "@/components/Play";
 import { useToast } from "@/components/Shell";
 import { stateLabel, TOURNAMENT_STATE } from "@/components/status";
@@ -9,7 +8,7 @@ import { Chip, Empty, ErrorCard, Ic, Loading, Sk } from "@/components/ui";
 import { Viewer } from "@/components/Viewer";
 import { useApi } from "@/lib/api";
 import { APP_URL } from "@/lib/auth";
-import { tourDateLong } from "@/lib/fmt";
+import { initials, tourDateLong } from "@/lib/fmt";
 import { useLive } from "@/lib/live";
 import type { TournamentView } from "@/lib/types";
 import { ranking } from "@/lib/ranking";
@@ -42,7 +41,6 @@ export function Share({ slug, dark = false }: { slug: string; dark?: boolean }) 
 export function TournamentPage({ slug }: { slug: string }) {
   const { data, error, reload } = useApi<TournamentView>(`/t/${encodeURIComponent(slug)}`);
   const { view: live } = useLive(slug, data && data.tournament.state !== "draft" ? data : null);
-  const [now] = useState(() => Date.now());
 
   if (error && !data) {
     return error.status === 404 ? (
@@ -167,7 +165,7 @@ export function TournamentPage({ slug }: { slug: string }) {
           <ul>
             {v.organisers.map((o) => (
               <li className="list-r" key={o.id}>
-                <span className="av">{o.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}</span>
+                <span className="av">{initials(o.name)}</span>
                 <div className="grow">
                   <b>{o.name}</b>
                   <span className="s">{o.role === "owner" ? "leitet" : o.role === "admin" ? "leitet mit" : "trägt Resultate ein"}</span>
@@ -176,7 +174,7 @@ export function TournamentPage({ slug }: { slug: string }) {
             ))}
           </ul>
           {t.organisation ? <p className="box-s" style={{ marginTop: 10 }}>Im Namen von {t.organisation.name}.</p> : null}
-          {now && t.state === "open" && t.startsAt ? <p className="box-s" style={{ marginTop: 6 }}>Beginn {tourDateLong(t.startsAt, t.endsAt)}.</p> : null}
+          {t.state === "open" && t.startsAt ? <p className="box-s" style={{ marginTop: 6 }}>Beginn {tourDateLong(t.startsAt, t.endsAt)}.</p> : null}
         </section>
       </div>
     </>

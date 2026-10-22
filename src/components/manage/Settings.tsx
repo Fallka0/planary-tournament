@@ -9,6 +9,7 @@ import { Dialog, Ic } from "../ui";
 import { useRun } from "./useRun";
 import { type ApiError, download, useAction } from "@/lib/api";
 import { PORTAL_URL } from "@/lib/auth";
+import { initials } from "@/lib/fmt";
 import type { TournamentView } from "@/lib/types";
 
 function Branding({ v }: { v: TournamentView }) {
@@ -115,7 +116,7 @@ function Organisers({ v }: { v: TournamentView }) {
       <ul>
         {v.organisers.map((o) => (
           <li className="list-r" key={o.id}>
-            <span className="av">{o.name.slice(0, 2).toUpperCase()}</span>
+            <span className="av">{initials(o.name)}</span>
             <div className="grow">
               <b>
                 {o.name}
