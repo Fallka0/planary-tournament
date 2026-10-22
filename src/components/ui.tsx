@@ -139,7 +139,7 @@ export function Empty({ icon, title, children, action }: { icon: IconName; title
   return (
     <div className="empty">
       <Ic name={icon} />
-      <h3>{title}</h3>
+      <h2>{title}</h2>
       <p>{children}</p>
       {action}
     </div>

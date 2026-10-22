@@ -167,8 +167,8 @@ export function Shell({ children }: { children: ReactNode }) {
             </nav>
           </footer>
         </div>
+        {note ? <Toast key={note.id} text={note.text} tone={note.tone} onDone={clear} /> : null}
       </div>
-      {note ? <Toast key={note.id} text={note.text} tone={note.tone} onDone={clear} /> : null}
     </ToastCtx.Provider>
   );
 }

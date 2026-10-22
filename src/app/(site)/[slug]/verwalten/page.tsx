@@ -84,7 +84,7 @@ function Manage({ slug }: { slug: string }) {
           Turnierseite
         </Link>
       </PageHead>
-      <div className="tabbar" role="tablist" aria-label="Verwalten">
+      <div className="tabs" role="tablist" aria-label="Verwalten">
         {tabs.map(([k, label]) => (
           <button key={k} className={`tab${tab === k ? " on" : ""}`} role="tab" type="button" aria-selected={tab === k} onClick={() => router.replace(`/${t.slug}/verwalten?tab=${k}`, { scroll: false })}>
             {label}

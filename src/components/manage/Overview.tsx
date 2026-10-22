@@ -9,7 +9,7 @@ import { useApi, apiCall } from "@/lib/api";
 import { useAuth } from "../AuthProvider";
 import { PORTAL_URL } from "@/lib/auth";
 import { matchStatus } from "@/lib/bracket-view";
-import { tourDateLong } from "@/lib/fmt";
+import { time, tourDateLong } from "@/lib/fmt";
 import type { Banner, TournamentView } from "@/lib/types";
 
 function StartDialog({ v, onClose }: { v: TournamentView; onClose: () => void }) {
@@ -156,7 +156,7 @@ export function Overview({ v }: { v: TournamentView }) {
                       [
                         "nur ihr seht es",
                         t.checkIn ? `Check-in ${t.checkInMinutes} Min. vorher` : "alle können sich anmelden",
-                        t.startsAt ? tourDateLong(t.startsAt, t.endsAt) : "wenn ihr startet",
+                        t.startedAt ? `seit ${time(t.startedAt)}` : t.startsAt ? tourDateLong(t.startsAt, t.endsAt) : "wenn ihr startet",
                         "Resultate bleiben",
                       ][i]
                     }

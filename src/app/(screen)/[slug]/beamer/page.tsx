@@ -86,7 +86,7 @@ export default function BeamerPage({ params }: PageProps<"/[slug]/beamer">) {
   const next = list.filter((x) => x.status === "next").slice(0, now.length ? 2 : 3);
   const groupsPhase = ctx.structure.groups.length > 0 && (!rounds.length || !ctx.structure.isGroupStageComplete);
   const brand = t.brand?.color ? ({ ["--brand" as string]: t.brand.color } as React.CSSProperties) : undefined;
-  const label = t.state === "live" ? (t.phase ? `Live · ${t.phase}` : "Live") : t.state === "done" ? "Abgeschlossen" : "Gleich geht es los";
+  const label = t.state === "live" ? "Live" : t.state === "done" ? "Abgeschlossen" : "Gleich geht es los";
   const offline = status !== "live";
 
   return (
@@ -149,11 +149,11 @@ export default function BeamerPage({ params }: PageProps<"/[slug]/beamer">) {
             {now.length ? (
               now.slice(0, 2).map((x) => (
                 <section className="bmr-now" key={x.m.id} aria-label="Jetzt live">
-                  <h3>
+                  <h2>
                     <span className="dot warn" />
                     Jetzt live · {x.code}
                     {x.m.station ? ` · ${x.m.station.name}` : ""}
-                  </h3>
+                  </h2>
                   <div className="bmr-sc">
                     <div className="ex-tm">
                       <span className="nm">{x.a}</span>
@@ -168,7 +168,7 @@ export default function BeamerPage({ params }: PageProps<"/[slug]/beamer">) {
               ))
             ) : null}
             <section className="bmr-next" aria-label="Als Nächstes">
-              <h3>Als Nächstes</h3>
+              <h2>Als Nächstes</h2>
               {next.length ? (
                 <ol>
                   {next.map((x) => (

@@ -43,9 +43,9 @@ export function MatchPanel({ v, m, ctx }: { v: PublicView; m: MatchView; ctx: Re
   const delay = delayText(m.plannedAt, m.scheduledAt);
   return (
     <>
-      <h3>
+      <h2>
         {ctx.codes.get(m.id)} · {ctx.labels.get(m.round) ?? `Runde ${m.round}`}
-      </h3>
+      </h2>
       <div className="ex-mt">
         {sideRow(m.participant_a, m.winner ? m.score_a : m.report?.a ?? null)}
         {sideRow(m.participant_b, m.winner ? m.score_b : m.report?.b ?? null)}
@@ -90,7 +90,7 @@ export function GroupTables({ ctx }: { ctx: ReturnType<typeof model> }) {
     <div className="grp">
       {ctx.structure.groups.map((g) => (
         <section key={g.label} className="grp-b" aria-label={g.label}>
-          <h3>{g.label}</h3>
+          <h2>{g.label}</h2>
           <table className="grp-t">
             <thead>
               <tr>
@@ -192,7 +192,7 @@ export function Teams({ v }: { v: PublicView }) {
       </ul>
       {waiting.length ? (
         <>
-          <h3 className="ex-sub">{started ? "Nicht im Turnier" : `Warteliste · ${waiting.length}`}</h3>
+          <h2 className="ex-sub">{started ? "Nicht im Turnier" : `Warteliste · ${waiting.length}`}</h2>
           <ol className="tms">
             {waiting.map((e, i) => (
               <li className="tm" key={e.id}>
@@ -260,7 +260,7 @@ export function Viewer({ v }: { v: PublicView }) {
             <MatchPanel v={v} m={selected} ctx={ctx} />
           ) : (
             <>
-              <h3>Spiele</h3>
+              <h2>Spiele</h2>
               <p className="ex-note">
                 {v.tournament.state === "done" ? "Das Turnier ist abgeschlossen." : "Sobald das Turnier läuft, steht hier das aktuelle Spiel."}
                 {v.tournament.startsAt && v.tournament.state !== "done" ? ` Beginn ${time(v.tournament.startsAt)}.` : ""}

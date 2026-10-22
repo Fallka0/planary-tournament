@@ -1,7 +1,7 @@
 // Planary Tournament: keeps the beamer working without internet. Pages and scripts are cached as
 // they load; when the network is gone, the last copy answers. The tournament data itself lives in
 // the page (localStorage), so the beamer shows the last state it saw.
-const CACHE = "tournament-v1";
+const CACHE = "tournament-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
@@ -22,7 +22,11 @@ self.addEventListener("fetch", (event) => {
         (hit) =>
           hit ||
           fetch(req).then((res) => {
-            if (res.ok) caches.open(CACHE).then((c) => c.put(req, res.clone()));
+            // Clone now: once the page reads the body, it can't be copied any more.
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(req, copy));
+            }
             return res;
           }),
       ),
@@ -34,7 +38,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          if (res.ok) caches.open(CACHE).then((c) => c.put(req, res.clone()));
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
           return res;
         })
         .catch(() => caches.match(req).then((hit) => hit || caches.match("/"))),
