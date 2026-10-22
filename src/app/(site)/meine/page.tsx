@@ -4,11 +4,12 @@ import Link from "next/link";
 import { SignInGate, TournamentRow } from "@/components/common";
 import { Empty, ErrorCard, Ic, Loading, PageHead, Sk } from "@/components/ui";
 import { useApi } from "@/lib/api";
+import { useNow } from "@/lib/now";
 import type { Summary } from "@/lib/types";
 
 function Mine() {
   const { data, error, reload } = useApi<{ organising: Summary[]; playing: Summary[] }>("/tournaments?mine=1", 30_000);
-  const now = Date.now();
+  const now = useNow();
   if (error && !data) return <ErrorCard title="Deine Turniere haben nicht geladen" error={error} onRetry={reload} />;
   if (!data) {
     return (

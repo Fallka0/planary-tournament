@@ -5,6 +5,7 @@ import { useState } from "react";
 import { TournamentRow } from "@/components/common";
 import { Empty, ErrorCard, Ic, Loading, PageHead, Sk } from "@/components/ui";
 import { useApi } from "@/lib/api";
+import { useNow } from "@/lib/now";
 import type { Summary } from "@/lib/types";
 
 type Filter = "" | "live" | "open" | "done";
@@ -23,7 +24,7 @@ export default function DiscoverPage() {
   if (filter) params.set("state", filter);
   if (term) params.set("q", term);
   const { data, error, reload } = useApi<{ tournaments: Summary[] }>(`/tournaments${params.size ? `?${params}` : ""}`, 30_000);
-  const now = Date.now();
+  const now = useNow();
 
   return (
     <>

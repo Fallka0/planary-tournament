@@ -11,6 +11,7 @@ import { Dialog, Ic } from "./ui";
 import { matchStatus, model } from "@/lib/bracket-view";
 import { type ApiError, useAction, useApi } from "@/lib/api";
 import { time } from "@/lib/fmt";
+import { useNow } from "@/lib/now";
 import type { MeResponse, TournamentView } from "@/lib/types";
 
 function Score({ format, onSubmit, busy, label }: { format: string; onSubmit: (a: string, b: string) => void; busy: boolean; label: string }) {
@@ -157,6 +158,7 @@ function Join({ v }: { v: TournamentView }) {
   const team = v.tournament.entryType === "team";
   const { data: me } = useApi<MeResponse>(user && team ? "/me" : null);
   const [teamId, setTeamId] = useState("");
+  const now = useNow();
   const t = v.tournament;
   const mine = v.me?.entryId ? v.entries.find((e) => e.id === v.me?.entryId) : null;
   const waitingPos = mine?.status === "waiting" ? v.entries.filter((e) => e.status === "waiting").findIndex((e) => e.id === mine.id) + 1 : 0;
@@ -174,7 +176,7 @@ function Join({ v }: { v: TournamentView }) {
   };
 
   const spots = `${t.counts.confirmed} von ${t.maxTeams} ${team ? "Teams" : "Plätzen"}`;
-  const closedWhy = !t.registrationOpen ? (t.registrationOpensAt && Date.now() < t.registrationOpensAt ? `Die Anmeldung öffnet am ${new Date(t.registrationOpensAt).toLocaleString("de-CH", { dateStyle: "medium", timeStyle: "short" })}.` : "Die Anmeldung ist geschlossen.") : null;
+  const closedWhy = !t.registrationOpen ? (t.registrationOpensAt && now < t.registrationOpensAt ? `Die Anmeldung öffnet am ${new Date(t.registrationOpensAt).toLocaleString("de-CH", { dateStyle: "medium", timeStyle: "short" })}.` : "Die Anmeldung ist geschlossen.") : null;
 
   let body: React.ReactNode;
   if (mine) {

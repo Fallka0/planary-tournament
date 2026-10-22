@@ -1,19 +1,19 @@
 "use client";
 
 // Live updates: a WebSocket to the tournament's room on the API. Every change arrives as the new
-// public view. The last view is kept in this browser, so the beamer shows the last state even
-// without internet (and after a reload while offline). Without a socket it falls back to polling.
+// public view. With `remember` the last view is kept in this browser, so the beamer shows the
+// last state even without internet (and after a reload while offline). While the socket is
+// down, it asks every 20 seconds instead.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { API, apiCall } from "./api";
 import type { PublicView } from "./types";
 
 const KEY = (slug: string) => `planary.tournament.view.${slug}`;
 
-export function cachedView(slug: string): (PublicView & { savedAt: number }) | null {
+function readRaw(slug: string) {
   try {
-    const raw = window.localStorage.getItem(KEY(slug));
-    return raw ? JSON.parse(raw) : null;
+    return window.localStorage.getItem(KEY(slug));
   } catch {
     return null;
   }
@@ -27,34 +27,34 @@ function save(slug: string, view: PublicView) {
   }
 }
 
+const noSubscribe = () => () => {};
+
 export type LiveStatus = "connecting" | "live" | "offline";
 
-/**
- * Follows a tournament. `initial` is what the page already loaded; `onView` hears every change.
- * Returns the newest view, the connection status and when the shown state is from.
- */
+const newest = (...views: (PublicView | null | undefined)[]) =>
+  views.reduce<PublicView | null>((best, v) => (v && (!best || v.tournament.version > best.tournament.version) ? v : best), null);
+
+/** Follows a tournament: the newest of the loaded view, the live messages and (with `remember`) the saved one. */
 export function useLive(slug: string, initial: PublicView | null, opts: { remember?: boolean } = {}) {
-  const [view, setView] = useState<PublicView | null>(initial);
-  const [status, setStatus] = useState<LiveStatus>("connecting");
-  const [stamp, setStamp] = useState<number | null>(null);
-  const version = useRef(initial?.tournament.version ?? 0);
   const remember = opts.remember ?? false;
-
-  // A newer page load wins over an older live message, and the other way round.
-  if (initial && initial.tournament.version > version.current) {
-    version.current = initial.tournament.version;
-    setView(initial);
-  }
-
-  useEffect(() => {
-    if (!remember || initial) return;
-    const cached = cachedView(slug);
-    if (cached) {
-      version.current = cached.tournament.version;
-      setView(cached);
-      setStamp(cached.savedAt);
+  const [live, setLive] = useState<{ view: PublicView; at: number } | null>(null);
+  const [status, setStatus] = useState<LiveStatus>("connecting");
+  // What was saved before this page opened; read once on the client.
+  const raw = useSyncExternalStore(noSubscribe, () => (remember ? readRaw(slug) : null), () => null);
+  const cached = useMemo(() => {
+    try {
+      return raw ? (JSON.parse(raw) as PublicView & { savedAt: number }) : null;
+    } catch {
+      return null;
     }
-  }, [slug, remember, initial]);
+  }, [raw]);
+
+  const view = newest(initial, live?.view, cached);
+  const stamp = view && view === live?.view ? live.at : view && view === cached ? cached.savedAt : null;
+  const latest = useRef(0);
+  useEffect(() => {
+    latest.current = view?.tournament.version ?? 0;
+  }, [view]);
 
   useEffect(() => {
     let ws: WebSocket | null = null;
@@ -65,25 +65,25 @@ export function useLive(slug: string, initial: PublicView | null, opts: { rememb
     let reconnect = 0;
 
     const accept = (next: PublicView) => {
-      if (next.tournament.version < version.current) return;
-      version.current = next.tournament.version;
-      setView(next);
-      setStamp(Date.now());
+      if (next.tournament.version < latest.current) return;
+      latest.current = next.tournament.version;
+      setLive({ view: next, at: Date.now() });
       if (remember) save(slug, next);
     };
 
     const pollOnce = () =>
       apiCall<PublicView>(null, "GET", `/t/${encodeURIComponent(slug)}`).then(
-        (v) => {
-          accept(v);
-          setStatus((s) => (s === "offline" ? "connecting" : s));
-        },
+        (v) => accept(v),
         () => setStatus("offline"),
       );
 
-    const connect = () => {
+    const scheduleRetry = () => {
+      window.clearTimeout(reconnect);
+      reconnect = window.setTimeout(connect, Math.min(30_000, 1000 * 2 ** retry++));
+    };
+
+    function connect() {
       if (closed) return;
-      setStatus((s) => (s === "live" ? s : "connecting"));
       try {
         ws = new WebSocket(`${API.replace(/^http/, "ws")}/t/${encodeURIComponent(slug)}/live`);
       } catch {
@@ -110,16 +110,10 @@ export function useLive(slug: string, initial: PublicView | null, opts: { rememb
         window.clearInterval(ping);
         if (closed) return;
         setStatus(navigator.onLine === false ? "offline" : "connecting");
-        // While the socket is down, ask now and then so nothing is missed.
         if (!poll) poll = window.setInterval(pollOnce, 20_000);
         scheduleRetry();
       };
-    };
-
-    const scheduleRetry = () => {
-      window.clearTimeout(reconnect);
-      reconnect = window.setTimeout(connect, Math.min(30_000, 1000 * 2 ** retry++));
-    };
+    }
 
     const goOnline = () => {
       retry = 0;
