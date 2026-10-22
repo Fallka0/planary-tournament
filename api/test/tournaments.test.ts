@@ -290,12 +290,12 @@ describe('profiles, logos and exports', () => {
 describe('live', () => {
   it('sends every change to the room', async () => {
     const id = await soloTournament(MATTEO, 2);
-    const res = await get(`/t/${id}/live`, null).then(() => call('GET', `/t/${id}/live`, { headers: { Upgrade: 'websocket' } }));
+    const res = await call('GET', `/t/${id}/live`, { headers: { Upgrade: 'websocket' } });
     expect(res.status).toBe(101);
     const ws = res.webSocket!;
     ws.accept();
     const views: any[] = [];
-    ws.addEventListener('message', (e) => {
+    ws.addEventListener('message', (e: MessageEvent) => {
       const msg = JSON.parse(String(e.data));
       if (msg.type === 'view') views.push(msg.view);
     });

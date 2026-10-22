@@ -171,7 +171,7 @@ export const asMatch = (m: MatchRow): Match => ({
 
 export function fileUrl(c: Context<AppEnv> | { env: Env; origin: string }, key: string | null) {
   if (!key) return null;
-  const origin = 'req' in c ? new URL(c.req.url).origin : c.origin;
+  const origin = c.env.API_URL || ('req' in c ? new URL(c.req.url).origin : c.origin);
   return `${origin}/files/${key}`;
 }
 

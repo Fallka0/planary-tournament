@@ -13,6 +13,8 @@ export interface Env {
 
   APP_ORIGINS: string;
   APP_URL: string;
+  /** This API's own address, for image links (the request URL can be rewritten by routes). */
+  API_URL?: string;
   PORTAL_URL: string;
 
   /** Shared with planary-org. */

@@ -22,6 +22,8 @@
     // The Tournament app (planary-tournament on Vercel).
     "APP_ORIGINS": "https://tournament.planary.ch,http://localhost:3000",
     "APP_URL": "https://tournament.planary.ch",
+    // This API's own address, for image links.
+    "API_URL": "https://tournament-api.planary.ch",
     "PORTAL_URL": "https://portal.planary.ch"
   },
   // Secret (wrangler secret put): INTERNAL_KEY, the same value as in planary-org. Without it,
