@@ -25,7 +25,8 @@ function Row({ side, seeds }: { side: BracketSide; seeds: boolean }) {
  */
 export function Bracket({ rounds, seeds = true, selected, onPick }: { rounds: BracketRound[]; seeds?: boolean; selected?: string | null; onPick?: (id: string) => void }) {
   return (
-    <div className="bk">
+    // As wide as its rounds need, so a single round fits a phone without scrolling.
+    <div className="bk" style={{ ["--n" as string]: rounds.length }}>
       {rounds.map((r) => (
         <div className="bk-r" key={r.name}>
           <div className="bk-rh">
@@ -46,7 +47,7 @@ export function Bracket({ rounds, seeds = true, selected, onPick }: { rounds: Br
                   return (
                     <div className="bk-s" key={m.id}>
                       {onPick ? (
-                        <button className={`${cls}${selected === m.id ? " sel" : ""}`} type="button" aria-pressed={selected === m.id} onClick={() => onPick(m.id)}>
+                        <button className={`${cls}${selected === m.id ? " picked" : ""}`} type="button" aria-pressed={selected === m.id} onClick={() => onPick(m.id)}>
                           {head}
                           <Row side={m.a} seeds={seeds} />
                           <Row side={m.b} seeds={seeds} />

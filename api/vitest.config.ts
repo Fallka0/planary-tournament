@@ -51,7 +51,17 @@ export default defineConfig(async () => {
                 return Response.json({ role });
               }
               const p = url.pathname.match(/^\/internal\/people\/([^/]+)\/orgs$/);
-              if (p) return Response.json({ orgs: p[1] === 'u_owner' || p[1] === 'u_member' ? [{ id: 'org_verein', name: 'Verein Gurten LAN', initials: 'GL', role: p[1] === 'u_owner' ? 'owner' : 'member', plan: 'verein' }] : [] });
+              // u_member is also in an organisation that only uses Wishlist: Tournament leaves it out.
+              if (p)
+                return Response.json({
+                  orgs:
+                    p[1] === 'u_owner' || p[1] === 'u_member'
+                      ? [
+                          { id: 'org_verein', name: 'Verein Gurten LAN', initials: 'GL', role: p[1] === 'u_owner' ? 'owner' : 'member', plan: 'verein', services: ['tournament', 'wishlist'] },
+                          ...(p[1] === 'u_member' ? [{ id: 'org_wish', name: 'Wunschclub', initials: 'WU', role: 'owner', plan: 'gratis', services: ['wishlist'] }] : []),
+                        ]
+                      : [],
+                });
               if (url.pathname === '/internal/banners') return Response.json({ banners: [{ kind: 'incident', title: 'Störung bei Planary: Live-Resultate kommen verzögert an.', text: 'Seit 19:58.', ref: 'inc_1', tournamentIds: [] }] });
               if (url.pathname === '/internal/tournament-events') return Response.json({ ok: true });
               return new Response('{}', { status: 404 });

@@ -77,12 +77,17 @@ export interface OrgSummary {
   initials: string;
   role: 'owner' | 'member';
   plan: PlanId;
+  /** The Planary services the organisation uses; older planary-org builds don't send it. */
+  services?: string[];
 }
 
-/** The organisations an account can run tournaments for. Empty when planary-org doesn't answer. */
+/**
+ * The organisations an account can run tournaments for: those that use Tournament. Empty when
+ * planary-org doesn't answer.
+ */
 export async function orgsOf(env: Env, user: string): Promise<OrgSummary[]> {
   const r = await call<{ orgs: OrgSummary[] }>(env, `/people/${encodeURIComponent(user)}/orgs`);
-  return r?.orgs ?? [];
+  return (r?.orgs ?? []).filter((o) => !o.services || o.services.includes('tournament'));
 }
 
 export interface Banner {
