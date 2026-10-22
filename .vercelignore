@@ -1,0 +1,3 @@
+# The Tournament API (api/) is a Cloudflare Worker, deployed with wrangler. Vercel would otherwise
+# turn every file in a top-level api/ folder into its own Serverless Function.
+/api
