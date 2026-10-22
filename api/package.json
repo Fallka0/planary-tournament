@@ -1,0 +1,23 @@
+{
+  "name": "planary-tournament-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8791",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply planary-tournament --local",
+    "db:migrate": "wrangler d1 migrations apply planary-tournament --remote",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "4.13.13"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.4.6",
+    "@cloudflare/workers-types": "5.20261018.1",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5",
+    "wrangler": "4.151.1"
+  }
+}
