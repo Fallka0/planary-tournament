@@ -61,6 +61,7 @@ describe('creating', () => {
     const mine = await ok(get('/tournaments?mine=1', MEMBER));
     expect(mine.organising.map((x: any) => x.id)).toEqual([t.id]);
     const me = await ok(get('/me', MEMBER));
+    expect(me.orgs).toHaveLength(1);
     expect(me.orgs[0]).toMatchObject({ id: 'org_verein', role: 'member' });
   });
 });

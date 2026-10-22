@@ -161,7 +161,7 @@ export function Schedule({ v, ctx, onPick, selected }: { v: PublicView; ctx: Ret
         return (
           <li key={x.m.id}>
             {onPick ? (
-              <button className={`sch-r${x.status === "live" || x.status === "reported" ? " is-live" : ""}${selected === x.m.id ? " sel" : ""}`} type="button" aria-pressed={selected === x.m.id} onClick={() => onPick(x.m.id)}>
+              <button className={`sch-r${x.status === "live" || x.status === "reported" ? " is-live" : ""}${selected === x.m.id ? " picked" : ""}`} type="button" aria-pressed={selected === x.m.id} onClick={() => onPick(x.m.id)}>
                 {body}
               </button>
             ) : (

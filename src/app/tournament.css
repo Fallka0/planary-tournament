@@ -451,7 +451,7 @@ td.dt-c{padding:0}
 
 /* bracket (same rules as the Tournament app, scaled) */
 .bk-wrap{overflow-x:auto;scrollbar-width:thin;margin-top:20px}
-.bk{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);column-gap:36px;min-width:560px}
+.bk{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);column-gap:36px;min-width:calc(var(--n,3) * 186px - 36px)}
 .bk-r{display:flex;flex-direction:column}
 .bk-rh{height:36px;display:flex;flex-direction:column;gap:1px;margin-bottom:6px}
 .bk-rh b{font-size:12px;font-weight:700}
@@ -465,7 +465,7 @@ td.dt-c{padding:0}
 .bm{width:100%;border-radius:11px;background:var(--scr-2);overflow:hidden;border:0;padding:0;text-align:left;font:inherit;color:inherit;display:block}
 button.bm{cursor:pointer;transition:box-shadow 120ms}
 button.bm:hover{box-shadow:0 0 0 1px #5a5a64}
-.bm.sel{box-shadow:0 0 0 2px var(--scr-ink)}
+.bm.picked{box-shadow:0 0 0 2px var(--scr-ink)}
 .bm-h{display:flex;align-items:center;justify-content:space-between;gap:8px;height:24px;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--scr-t2);border-bottom:1px solid var(--scr-rule)}
 .bm-h .lv{color:var(--scr-ink);display:inline-flex;align-items:center;gap:5px}
 .bm-h .lv::before{content:"";width:6px;height:6px;border-radius:50%;background:#ffb224}
@@ -587,7 +587,7 @@ button.bm:hover{box-shadow:0 0 0 1px #5a5a64}
 .ex .sch-r{width:100%;border:0;font:inherit;color:inherit;text-align:left;cursor:default}
 .ex button.sch-r{cursor:pointer}
 .ex button.sch-r:hover{box-shadow:0 0 0 1px #5a5a64}
-.ex .sch-r.sel{box-shadow:0 0 0 2px var(--scr-ink)}
+.ex .sch-r.picked{box-shadow:0 0 0 2px var(--scr-ink)}
 .ex-sub{font-size:12px;font-weight:700;color:var(--scr-t2);margin:20px 0 10px;letter-spacing:.02em}
 .ex .bk-wrap{margin-top:0}
 .t-logo{width:72px;height:72px;border-radius:18px;object-fit:cover;flex:none;align-self:center;background:var(--scr-2)}
@@ -690,3 +690,22 @@ button.bm:hover{box-shadow:0 0 0 1px #5a5a64}
 .ex-side h2{font-size:12px;font-weight:700;color:var(--scr-t2);letter-spacing:.02em}
 .grp-b h2{font-size:13px;font-weight:700;margin-bottom:8px}
 .bmr-now h2,.bmr-next h2{font-size:13px;font-weight:700;color:#a3a3ad;display:flex;align-items:center;gap:8px;letter-spacing:.02em}
+
+/* Layout: the footer sits at the bottom on short pages; on wide screens the top bar, tabs, banners
+   and footer line up with the content instead of the window edge, and the content gets wider. */
+.site{display:flex;flex-direction:column;--maxw:1280px;--edge:max(0px,calc((100cqw - var(--maxw)) / 2))}
+.pmain{flex:1 0 auto;width:100%;max-width:var(--maxw)}
+.top{padding-left:max(24px,calc(var(--edge) + 40px));padding-right:max(16px,calc(var(--edge) + 34px))}
+.ptabs{padding-left:max(24px,calc(var(--edge) + 28px));padding-right:max(24px,calc(var(--edge) + 28px))}
+.pfoot,.pbanner{padding-left:max(24px,calc(var(--edge) + 40px));padding-right:max(24px,calc(var(--edge) + 40px))}
+@container site (min-width:1700px){
+.site{--maxw:1440px}
+}
+@container site (max-width:760px){
+.top{padding:0 8px 0 12px}
+.ptabs{padding:0 8px}
+.pfoot{padding:20px 16px}
+.pbanner{padding:12px 16px}
+}
+/* A bracket round is never wider than a readable match box, even when it's the only round. */
+.ex .bk{grid-auto-columns:minmax(150px,300px)}
