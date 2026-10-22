@@ -24,7 +24,7 @@ import {
 import { dropImage, storeImage } from '../lib/files';
 import { bannersFor, limitsFor, membership, PLAN_NAME, sendEvent, type Limits } from '../lib/org';
 import { ensureProfile } from './me';
-import { ApiError, bad, bool, fail, clean, conflict, forbidden, int, MINUTE, notFound, oneOf, randomId, readJson, requireText, RESERVED_SLUGS, SLUG, slugify, time } from '../lib/util';
+import { ApiError, bad, bool, fail, clean, conflict, forbidden, int, notFound, oneOf, randomId, readJson, requireText, RESERVED_SLUGS, SLUG, slugify, time } from '../lib/util';
 
 export const tournamentsApp = new Hono<AppEnv>();
 
@@ -181,6 +181,8 @@ async function freeSlug(c: Context<AppEnv>, wanted: string, except?: string) {
 
 tournamentsApp.post('/tournaments', async (c) => {
   const person = await requirePerson(c);
+  const open = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM tournaments WHERE owner_id = ? AND state <> 'done'").bind(person.id).first<{ n: number }>();
+  if ((open?.n ?? 0) >= MAX_OPEN_PER_OWNER) throw conflict(`Du hast schon ${MAX_OPEN_PER_OWNER} Turniere, die nicht abgeschlossen sind. Schliess oder lösch zuerst welche.`, 'too_many_tournaments');
   const profile = await ensureProfile(c.env, person);
   const b = await readJson(c);
   const orgId = b.organisationId ? clean(b.organisationId, 100) : null;
@@ -505,4 +507,5 @@ tournamentsApp.delete('/t/:id', async (c) => {
   return c.json({ ok: true });
 });
 
-export const CHECK_IN_GRACE = 5 * MINUTE;
+/** Drafts, open and live tournaments one account may have at once (against floods, far above real use). */
+export const MAX_OPEN_PER_OWNER = 50;
