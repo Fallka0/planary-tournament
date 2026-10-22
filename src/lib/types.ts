@@ -1,112 +1,171 @@
-import type { Session, User } from '@supabase/supabase-js'
+// What the Tournament API answers (api/src/lib/core.ts publicView, routes/tournaments.ts viewFor).
 
-export type TournamentStatus = 'open' | 'live' | 'finished'
-export type TournamentMode = 'group' | 'knockout' | 'both'
-export type MatchFormat = 'bo1' | 'bo3' | 'bo5'
-export type TournamentEntryType = 'solo' | 'team'
-export type UserRole = 'user' | 'admin'
+import type { MatchFormat, TournamentEntryType, TournamentMode } from "@/shared/types";
+
+export type TournamentState = "draft" | "open" | "live" | "done";
+export type Role = "owner" | "admin" | "scorer";
+export type PlanId = "gratis" | "event" | "verein";
+
+export interface TournamentInfo {
+  id: string;
+  slug: string;
+  name: string;
+  game: string;
+  mode: TournamentMode;
+  groupCount: number;
+  matchFormat: MatchFormat;
+  format: string;
+  entryType: TournamentEntryType;
+  teamSize: number;
+  maxTeams: number;
+  startsAt: number | null;
+  endsAt: number | null;
+  venue: string;
+  description: string;
+  isPublic: boolean;
+  state: TournamentState;
+  phase: string | null;
+  registrationOpensAt: number | null;
+  registrationClosesAt: number | null;
+  registrationOpen: boolean;
+  checkIn: boolean;
+  checkInMinutes: number;
+  checkInOpen: boolean;
+  waitingList: boolean;
+  confirmResults: boolean;
+  matchMinutes: number;
+  breakMinutes: number;
+  brand: { logoUrl: string | null; color: string | null } | null;
+  plan: PlanId;
+  owner: { id: string; name: string };
+  organisation: { id: string; name: string } | null;
+  counts: { confirmed: number; waiting: number; checkedIn: number };
+  full: boolean;
+  version: number;
+  createdAt: number;
+  updatedAt: number;
+  startedAt: number | null;
+  finishedAt: number | null;
+}
+
+export interface Entry {
+  id: string;
+  name: string;
+  status: "confirmed" | "waiting";
+  checkedIn: boolean;
+  teamId: string | null;
+  members: string[];
+  createdAt: number;
+}
+
+export interface MatchView {
+  id: string;
+  round: number;
+  participant_a: string | null;
+  participant_b: string | null;
+  score_a: number | null;
+  score_b: number | null;
+  winner: string | null;
+  created_at: string;
+  station: { id: string; name: string } | null;
+  plannedAt: number | null;
+  scheduledAt: number | null;
+  startedAt: number | null;
+  finishedAt: number | null;
+  report: { by: string; a: number; b: number; at: number } | null;
+  disputed: boolean;
+}
+
+export interface Features {
+  checkIn: boolean;
+  waitingList: boolean;
+  branding: boolean;
+  export: boolean;
+  matchDaySupport: boolean;
+  maxTeams: number;
+}
+
+export interface PublicView {
+  tournament: TournamentInfo;
+  entries: Entry[];
+  matches: MatchView[];
+  stations: { id: string; name: string }[];
+  organisers: { id: string; name: string; role: Role }[];
+  features: Features;
+}
+
+export interface Limits extends Omit<Features, "maxTeams"> {
+  plan: PlanId;
+  planName: string;
+  maxTeams: number;
+  maxRunning: number | null;
+  maxOrganisers: number;
+  invoice: boolean;
+}
+
+export interface TournamentView extends PublicView {
+  me: { role: Role | null; entryId: string | null } | null;
+  limits: Limits | null;
+}
+
+export interface Summary {
+  id: string;
+  slug: string;
+  name: string;
+  game: string;
+  state: TournamentState;
+  phase: string | null;
+  startsAt: number | null;
+  endsAt: number | null;
+  venue: string;
+  entryType: TournamentEntryType;
+  teams: number;
+  maxTeams: number;
+  isPublic: boolean;
+  owner: { id: string; name: string };
+  organisation: { id: string; name: string } | null;
+  logoUrl: string | null;
+}
 
 export interface Profile {
-  id: string
-  email?: string | null
-  username: string | null
-  full_name: string | null
-  role?: UserRole | null
-  bio?: string | null
-  avatar_url?: string | null
-  banner_url?: string | null
-  website_url?: string | null
-  x_url?: string | null
-  github_url?: string | null
-  created_at?: string | null
-}
-
-export interface Tournament {
-  id: string
-  name: string
-  sport: string
-  mode: TournamentMode
-  group_count?: number | null
-  match_format?: MatchFormat | null
-  entry_type?: TournamentEntryType | null
-  team_size?: number | null
-  max_participants: number
-  date: string
-  status: TournamentStatus | null
-  description: string | null
-  is_public: boolean | null
-  owner_id: string | null
-  /** Set by planary-org when the tournament belongs to an organisation; its plan sets the limits. */
-  organisation_id?: string | null
-  owner_name?: string | null
-  created_at?: string | null
-  current_participants?: number
-}
-
-export interface Participant {
-  id: string
-  tournament_id: string
-  name: string
-  user_id: string | null
-  team_id?: string | null
-  created_at?: string | null
+  id: string;
+  username: string;
+  name: string;
+  bio: string;
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+  links: { website: string; x: string; github: string };
+  createdAt: number;
 }
 
 export interface Team {
-  id: string
-  owner_id: string
-  name: string
-  tag?: string | null
-  description?: string | null
-  avatar_url?: string | null
-  banner_url?: string | null
-  member_names: string[]
-  created_at?: string | null
+  id: string;
+  name: string;
+  tag: string;
+  description: string;
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+  members: string[];
+  createdAt: number;
 }
 
-export interface Match {
-  id: string
-  tournament_id: string
-  participant_a: string | null
-  participant_b: string | null
-  round: number
-  score_a: number | null
-  score_b: number | null
-  winner: string | null
-  created_at?: string | null
+export interface OrgSummary {
+  id: string;
+  name: string;
+  initials: string;
+  role: "owner" | "member";
+  plan: PlanId;
 }
 
-export interface MatchSlot extends Match {
-  isSkeleton?: boolean
+export interface MeResponse {
+  me: Profile & { email: string };
+  teams: Team[];
+  orgs: OrgSummary[];
 }
 
-export interface TournamentFormValues {
-  name: string
-  sport: string
-  mode: TournamentMode
-  group_count: number | string
-  match_format: MatchFormat
-  entry_type: TournamentEntryType
-  team_size: number | string
-  max_participants: number | string
-  date: string
-  status: TournamentStatus
-  description: string
-  is_public: boolean
-}
-
-export interface ScoreFormValues {
-  score_a: string
-  score_b: string
-}
-
-export interface AuthContextValue {
-  session: Session | null
-  user: User | null
-  profile: Profile | null
-  loading: boolean
-  isAuthenticated: boolean
-  isAdmin: boolean
-  refreshProfile: () => Promise<Profile | null>
-  signOut: () => Promise<void>
+export interface Banner {
+  kind: "incident";
+  title: string;
+  text: string;
+  ref: string;
 }

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /*/verwalten
+Disallow: /neu
+Disallow: /profil
+Disallow: /teams
+Disallow: /meine

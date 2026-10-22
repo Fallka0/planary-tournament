@@ -136,6 +136,6 @@ export function slugify(name: string) {
 }
 
 /** Words the app uses as routes, so no tournament can take them. */
-export const RESERVED_SLUGS = new Set(['neu', 'teams', 'profil', 'veranstalter', 'api', 'anmelden', 'abmelden', 'hilfe', 'beamer', 'verwalten', 'tournaments', 'auth', 'admin', 'profile', 'organizers', 'offline', 'sw', 'favicon', 'robots', 'icon']);
+export const RESERVED_SLUGS = new Set(['neu', 'meine', 'teams', 'profil', 'veranstalter', 'api', 'anmelden', 'abmelden', 'hilfe', 'beamer', 'verwalten', 'tournaments', 'auth', 'admin', 'profile', 'organizers', 'offline', 'sw', 'favicon', 'robots', 'icon']);
 
 export const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,46}[a-z0-9])$/;

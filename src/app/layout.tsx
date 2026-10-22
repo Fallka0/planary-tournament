@@ -1,63 +1,25 @@
-import type { Metadata } from 'next'
-import type { ReactNode } from 'react'
-import { Geist_Mono, Manrope, Space_Grotesk } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { SpeedInsights } from '@vercel/speed-insights/next'
-import './globals.css'
-import AppBackgroundVeil from '@/components/AppBackgroundVeil'
-import Footer from '@/components/Footer'
-import Header from '@/components/Header'
-import { AuthProvider } from '@/components/auth/AuthProvider'
-import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import type { Metadata, Viewport } from "next";
+import { Manrope, Unbounded } from "next/font/google";
+import { Providers } from "./providers";
+import "./tournament.css";
 
-const bodyFont = Manrope({
-  variable: '--font-app-body',
-  subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-app-mono',
-  subsets: ['latin'],
-})
-
-const headingFont = Space_Grotesk({
-  variable: '--font-app-heading',
-  subsets: ['latin'],
-})
+const body = Manrope({ variable: "--font-body", subsets: ["latin", "latin-ext"], weight: ["400", "500", "600", "700", "800"] });
+const disp = Unbounded({ variable: "--font-disp", subsets: ["latin", "latin-ext"], weight: ["300", "400"] });
 
 export const metadata: Metadata = {
-  title: {
-    default: 'Tournament',
-    template: '%s | Tournament',
-  },
-  description: 'Tournament by Planary helps you manage gaming and sports tournaments without the chaos.',
-  icons: {
-    icon: '/favicon.svg',
-    apple: '/apple-touch-icon.png',
-  },
-}
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://tournament.planary.ch"),
+  title: { default: "Planary Tournament", template: "%s · Planary Tournament" },
+  description: "Turniere für Vereine, Schulen und Communities: Anmeldung, Spielplan, Bracket und Beamer-Ansicht.",
+};
 
-interface RootLayoutProps {
-  children: ReactNode
-}
+export const viewport: Viewport = { themeColor: "#0b0b0f" };
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="de" suppressHydrationWarning className={`${bodyFont.variable} ${headingFont.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen antialiased">
-        <ThemeProvider>
-          <AuthProvider>
-            <AppBackgroundVeil />
-            <div className="app-shell flex min-h-screen flex-col">
-              <Header />
-              <div className="relative z-10 flex-1">{children}</div>
-              <Footer />
-            </div>
-            <Analytics />
-            <SpeedInsights />
-          </AuthProvider>
-        </ThemeProvider>
+    <html lang="de" className={`${body.variable} ${disp.variable}`} suppressHydrationWarning>
+      <body>
+        <Providers>{children}</Providers>
       </body>
     </html>
-  )
+  );
 }
