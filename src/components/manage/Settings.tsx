@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { useAuth } from "../AuthProvider";
+import { LockedFeature, upgradeFor } from "../PlanLimits";
 import { useToast } from "../Shell";
 import { bodyFrom, fieldOf, formFrom, TournamentForm, type FormValues } from "../TournamentForm";
 import { Dialog, Ic } from "../ui";
@@ -20,6 +21,7 @@ function Branding({ v }: { v: TournamentView }) {
   const file = useRef<HTMLInputElement>(null);
   const [color, setColor] = useState(t.brand?.color ?? "#1f1b3a");
   const allowed = !!v.limits?.branding;
+  const upgrade = upgradeFor(v);
   const upload = async (f: File | undefined) => {
     if (!f) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) return toast("Logos müssen PNG, JPG oder WebP sein.", "err");
@@ -39,10 +41,11 @@ function Branding({ v }: { v: TournamentView }) {
         <h2 id="br-h" className="box-t">
           Logo und Farbe
         </h2>
-        {!allowed ? <span className="chip chip-line">ab Plan Event</span> : null}
       </div>
       <p className="box-s">Auf der Turnierseite und dem Beamer.</p>
-      {allowed ? (
+      {!allowed && upgrade ? (
+        <LockedFeature title="Dein Logo und deine Farben" hint="Statt des Planary-Logos, auf dem Beamer und der Anmeldeseite." what="Logo und Farben gibt es mit dem Turnier-Pass oder mit Plus." upgrade={upgrade} toggle={false} />
+      ) : allowed ? (
         <>
           <div className="logo-up">
             <span className="logo logo-xl" style={t.brand?.color ? { background: t.brand.color } : undefined}>
@@ -135,7 +138,7 @@ function Organisers({ v }: { v: TournamentView }) {
       {t.organisation ? <p className="box-s">Mitglieder von {t.organisation.name} leiten das Turnier ohnehin mit.</p> : null}
       {runs ? (
         v.organisers.length >= max ? (
-          <p className="box-s">Im Plan {v.limits?.planName ?? "Gratis"} {max === 1 ? "leitest du allein" : `leiten bis ${max} Personen`}. Mehr gibt es im Plan Verein.</p>
+          <p className="box-s">Im Plan {v.limits?.planName ?? "Gratis"} {max === 1 ? "leitest du allein" : `leiten bis ${max} Personen`}. Bis 10 mit dem Turnier-Pass oder mit Plus.</p>
         ) : (
           <form
             className="form-2"
@@ -184,7 +187,7 @@ function Export({ v }: { v: TournamentView }) {
         <h2 id="ex-h" className="box-t">
           Export
         </h2>
-        {!allowed ? <span className="chip chip-line">ab Plan Event</span> : null}
+        {!allowed ? <span className="chip chip-line">Pass oder Plus</span> : null}
       </div>
       <p className="box-s" style={{ marginBottom: 12 }}>
         Für die Vereinsseite, das Archiv oder die Siegerehrung. Die CSV-Dateien öffnen sich direkt in Excel.
@@ -290,7 +293,7 @@ export function Settings({ v }: { v: TournamentView }) {
   return (
     <div className="g3">
       <div className="stack">
-        <TournamentForm value={form} onChange={setForm} plan={plan} started={started} hasEntries={v.entries.length > 0} showSlug errors={errors} />
+        <TournamentForm value={form} onChange={setForm} plan={plan} started={started} hasEntries={v.entries.length > 0} showSlug errors={errors} upgrade={upgradeFor(v)} />
         <div className="savebar">
           <button className="btn btn-ink" type="button" disabled={busy || !dirty} onClick={save}>
             Änderungen speichern

@@ -4,7 +4,8 @@ import type { MatchFormat, TournamentEntryType, TournamentMode } from "@/shared/
 
 export type TournamentState = "draft" | "open" | "live" | "done";
 export type Role = "owner" | "admin" | "scorer";
-export type PlanId = "gratis" | "event" | "verein";
+/** The organisation's tier. The Turnier-Pass isn't one: it lifts a single tournament (`pass`). */
+export type PlanId = "gratis" | "plus";
 
 export interface TournamentInfo {
   id: string;
@@ -37,6 +38,10 @@ export interface TournamentInfo {
   breakMinutes: number;
   brand: { logoUrl: string | null; color: string | null } | null;
   plan: PlanId;
+  /** A Turnier-Pass lifts this tournament to Plus's tournament limits. */
+  pass: boolean;
+  /** A draft that goes out by itself when the running tournament ends (Gratis). */
+  queued: boolean;
   owner: { id: string; name: string };
   organisation: { id: string; name: string } | null;
   counts: { confirmed: number; waiting: number; checkedIn: number };
@@ -97,6 +102,7 @@ export interface PublicView {
 export interface Limits extends Omit<Features, "maxTeams"> {
   plan: PlanId;
   planName: string;
+  pass: boolean;
   maxTeams: number;
   maxRunning: number | null;
   maxOrganisers: number;
@@ -168,4 +174,14 @@ export interface Banner {
   title: string;
   text: string;
   ref: string;
+}
+
+/** GET /limits: the plan for a new or existing tournament, and what is live in the way. */
+export interface LimitsInfo {
+  plan: PlanId;
+  planName: string;
+  pass: boolean;
+  limits: Omit<Limits, "plan" | "planName" | "pass">;
+  canRun: boolean;
+  live: { id: string; slug: string; name: string }[];
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import type { ReactNode } from "react";
+import { LockedFeature, TeamsLimit, type Upgrade } from "./PlanLimits";
 import { Ic } from "./ui";
 import { fromLocalInput, toLocalInput } from "@/lib/fmt";
 import { GAMES } from "@/lib/games";
@@ -119,6 +120,42 @@ export interface PlanInfo {
   waitingList: boolean;
 }
 
+/**
+ * The size of the field as a stepper. The cap is always said under it; at the cap the + carries
+ * a dot, and pressing it says how to get more room (when there is a way up).
+ */
+function Teams({ value, onChange, cap, planName, word, disabled, upgrade }: { value: number; onChange: (n: number) => void; cap: number; planName: string; word: string; disabled?: boolean; upgrade?: Upgrade | null }) {
+  const [panel, setPanel] = useState(false);
+  const atCap = value >= cap && !!upgrade;
+  const set = (n: number) => onChange(Math.max(2, Math.min(cap, n)));
+  return (
+    <div className="f">
+      <label className="f-l" htmlFor="tf-max">
+        Anzahl {word}
+      </label>
+      <div className={`stepper${atCap ? " at-cap" : ""}`}>
+        <button type="button" aria-label={`Ein ${word === "Teams" ? "Team" : "Spieler"} weniger`} disabled={disabled || value <= 2} onClick={() => set(value - 1)}>
+          <span aria-hidden="true">−</span>
+        </button>
+        <input id="tf-max" type="number" inputMode="numeric" min={2} max={cap} value={Number.isFinite(value) ? value : ""} disabled={disabled} aria-describedby="tf-max-h" onChange={(e) => onChange(Number.parseInt(e.target.value, 10))} />
+        <button
+          type="button"
+          aria-label={atCap ? `Mehr als ${cap}: so geht es` : `Ein ${word === "Teams" ? "Team" : "Spieler"} mehr`}
+          aria-expanded={atCap ? panel : undefined}
+          disabled={disabled || (value >= cap && !upgrade)}
+          onClick={() => (value >= cap ? setPanel(true) : set(value + 1))}
+        >
+          <span aria-hidden="true">+</span>
+        </button>
+      </div>
+      <span id="tf-max-h" className="f-h">
+        bis {cap} bei {planName}
+      </span>
+      {panel && upgrade ? <TeamsLimit cap={cap} upgrade={upgrade} onKeep={() => setPanel(false)} /> : null}
+    </div>
+  );
+}
+
 function Pills<T extends string>({ label, value, options, onChange, disabled }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void; disabled?: boolean }) {
   return (
     <fieldset className="f" style={{ border: 0, padding: 0, margin: 0 }} disabled={disabled}>
@@ -177,6 +214,7 @@ export function TournamentForm({
   showSlug = false,
   errors = {},
   extra,
+  upgrade = null,
 }: {
   value: FormValues;
   onChange: (v: FormValues) => void;
@@ -186,6 +224,8 @@ export function TournamentForm({
   showSlug?: boolean;
   errors?: Partial<Record<keyof FormValues, string>>;
   extra?: ReactNode;
+  /** The ways up from this plan; null when there is none (Plus, or a pass already). */
+  upgrade?: Upgrade | null;
 }) {
   const set = <K extends keyof FormValues>(k: K, v: FormValues[K]) => onChange({ ...value, [k]: v });
   const gameOpen = useId();
@@ -276,16 +316,7 @@ export function TournamentForm({
         />
         <div className="form-2">
           {value.entryType === "team" ? <Num id="tf-size" label="Spieler pro Team" value={value.teamSize} min={2} max={30} disabled={started} onChange={(n) => set("teamSize", n)} /> : <span />}
-          <Num
-            id="tf-max"
-            label={`Anzahl ${word}`}
-            value={value.maxTeams}
-            min={2}
-            max={plan.maxTeams}
-            disabled={started}
-            onChange={(n) => set("maxTeams", n)}
-            hint={`Im Plan ${plan.name} bis ${plan.maxTeams}.`}
-          />
+          <Teams value={value.maxTeams} onChange={(n) => set("maxTeams", n)} cap={plan.maxTeams} planName={plan.name} word={word} disabled={started} upgrade={upgrade} />
         </div>
         {err("maxTeams")}
       </section>
@@ -340,18 +371,22 @@ export function TournamentForm({
           hint={`Wer bis zum Start nicht eingecheckt ist, spielt nicht mit; die Warteliste rückt nach. Öffnet ${value.checkInMinutes} Minuten vor dem Beginn.`}
           checked={value.checkIn && plan.checkIn}
           disabled={!plan.checkIn || started}
-          locked={plan.checkIn ? undefined : "ab Plan Event"}
+          locked={plan.checkIn ? undefined : "Pass oder Plus"}
           onChange={(v) => set("checkIn", v)}
         />
         {value.checkIn && plan.checkIn ? <Num id="tf-cim" label="Check-in öffnet so viele Minuten vor dem Beginn" value={value.checkInMinutes} min={10} max={240} onChange={(n) => set("checkInMinutes", n)} /> : null}
-        <Toggle
-          label="Warteliste"
-          hint="Ist das Turnier voll, rücken Nachzügler bei Absagen nach."
-          checked={value.waitingList && plan.waitingList}
-          disabled={!plan.waitingList || started}
-          locked={plan.waitingList ? undefined : "ab Plan Event"}
-          onChange={(v) => set("waitingList", v)}
-        />
+        {!plan.waitingList && upgrade && !started ? (
+          <LockedFeature title="Warteliste" hint="Ist das Turnier voll, rücken Nachzügler bei Absagen nach." what="Die Warteliste gibt es mit dem Turnier-Pass oder mit Plus." upgrade={upgrade} />
+        ) : (
+          <Toggle
+            label="Warteliste"
+            hint="Ist das Turnier voll, rücken Nachzügler bei Absagen nach."
+            checked={value.waitingList && plan.waitingList}
+            disabled={!plan.waitingList || started}
+            locked={plan.waitingList ? undefined : "Pass oder Plus"}
+            onChange={(v) => set("waitingList", v)}
+          />
+        )}
         <Toggle
           label="Teams melden ihr Resultat"
           hint="Eine Seite meldet, die andere bestätigt."
