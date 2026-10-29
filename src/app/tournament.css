@@ -745,3 +745,8 @@ button.bm:hover{box-shadow:0 0 0 1px #5a5a64}
 .pop .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 @media (max-width:720px){.lim-o,.lim-o.three{grid-template-columns:minmax(0,1fr)}.lim{padding:16px}}
 .stepper button span{font:400 20px/1 var(--body);color:inherit}
+.stepper button{border:0;background:none;color:var(--ink);font:inherit;width:40px;height:40px;border-radius:9px;display:grid;place-items:center;cursor:pointer}
+.stepper button:disabled{color:var(--t3);cursor:default}
+.lo .btn{max-width:100%;white-space:normal;height:auto;min-height:36px;text-align:left}
+.stepper{display:flex;align-items:center;gap:4px;padding:3px;border-radius:12px;background:var(--panel);width:max-content}
+.stepper button:not(:disabled):hover{background:var(--panel2)}

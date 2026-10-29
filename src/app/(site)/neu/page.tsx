@@ -84,6 +84,7 @@ function Create() {
     if (!valid()) return;
     if (publish && !whenFree && info && !info.canRun) {
       setRunning(true);
+      requestAnimationFrame(() => document.getElementById("running-limit")?.scrollIntoView({ behavior: "smooth", block: "center" }));
       return;
     }
     setBusy(true);
@@ -157,7 +158,14 @@ function Create() {
         }
       />
       <div className="g3">
-        <TournamentForm value={form} onChange={setForm} plan={shown} errors={errors} extra={orgField} showSlug upgrade={upgrade} />
+        <div className="stack">
+          <TournamentForm value={form} onChange={setForm} plan={shown} errors={errors} extra={orgField} showSlug upgrade={upgrade} />
+          {running && upgrade ? (
+            <div id="running-limit">
+              <RunningLimit running={info?.live[0]?.name ?? "Ein anderes Turnier"} upgrade={upgrade} busy={busy} onLater={() => submit(true, true)} />
+            </div>
+          ) : null}
+        </div>
         <div className="stack sticky">
           <section className="box" aria-labelledby="pl-h">
             <h2 id="pl-h" className="box-t">
@@ -198,9 +206,6 @@ function Create() {
               </PlanNote>
             ) : null}
           </section>
-          {running && upgrade ? (
-            <RunningLimit running={info?.live[0]?.name ?? "Ein anderes Turnier"} upgrade={upgrade} busy={busy} onLater={() => submit(true, true)} />
-          ) : null}
           <section className="box form" aria-label="Speichern">
             {running ? null : (
               <button className="btn btn-ink" type="button" disabled={busy} onClick={() => submit(true)}>

@@ -124,8 +124,7 @@ export interface PlanInfo {
  * The size of the field as a stepper. The cap is always said under it; at the cap the + carries
  * a dot, and pressing it says how to get more room (when there is a way up).
  */
-function Teams({ value, onChange, cap, planName, word, disabled, upgrade }: { value: number; onChange: (n: number) => void; cap: number; planName: string; word: string; disabled?: boolean; upgrade?: Upgrade | null }) {
-  const [panel, setPanel] = useState(false);
+function Teams({ value, onChange, cap, planName, word, disabled, upgrade, panel, setPanel }: { value: number; onChange: (n: number) => void; cap: number; planName: string; word: string; disabled?: boolean; upgrade?: Upgrade | null; panel: boolean; setPanel: (open: boolean) => void }) {
   const atCap = value >= cap && !!upgrade;
   const set = (n: number) => onChange(Math.max(2, Math.min(cap, n)));
   return (
@@ -151,7 +150,6 @@ function Teams({ value, onChange, cap, planName, word, disabled, upgrade }: { va
       <span id="tf-max-h" className="f-h">
         bis {cap} bei {planName}
       </span>
-      {panel && upgrade ? <TeamsLimit cap={cap} upgrade={upgrade} onKeep={() => setPanel(false)} /> : null}
     </div>
   );
 }
@@ -228,6 +226,7 @@ export function TournamentForm({
   upgrade?: Upgrade | null;
 }) {
   const set = <K extends keyof FormValues>(k: K, v: FormValues[K]) => onChange({ ...value, [k]: v });
+  const [teamsPanel, setTeamsPanel] = useState(false);
   const gameOpen = useId();
   const err = (k: keyof FormValues) =>
     errors[k] ? (
@@ -316,8 +315,9 @@ export function TournamentForm({
         />
         <div className="form-2">
           {value.entryType === "team" ? <Num id="tf-size" label="Spieler pro Team" value={value.teamSize} min={2} max={30} disabled={started} onChange={(n) => set("teamSize", n)} /> : <span />}
-          <Teams value={value.maxTeams} onChange={(n) => set("maxTeams", n)} cap={plan.maxTeams} planName={plan.name} word={word} disabled={started} upgrade={upgrade} />
+          <Teams value={value.maxTeams} onChange={(n) => set("maxTeams", n)} cap={plan.maxTeams} planName={plan.name} word={word} disabled={started} upgrade={upgrade} panel={teamsPanel} setPanel={setTeamsPanel} />
         </div>
+        {teamsPanel && upgrade ? <TeamsLimit cap={plan.maxTeams} upgrade={upgrade} onKeep={() => setTeamsPanel(false)} /> : null}
         {err("maxTeams")}
       </section>
 
