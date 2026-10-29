@@ -7,6 +7,7 @@ import { SignInGate } from "@/components/common";
 import { Entries } from "@/components/manage/Entries";
 import { Matches } from "@/components/manage/Matches";
 import { Overview } from "@/components/manage/Overview";
+import { useBackFromCheckout } from "@/components/PlanLimits";
 import { Settings } from "@/components/manage/Settings";
 import { Stations } from "@/components/manage/Stations";
 import { stateLabel, TOURNAMENT_STATE } from "@/components/status";
@@ -30,6 +31,8 @@ function Manage({ slug }: { slug: string }) {
   const { data, error, reload } = useApi<TournamentView>(`/t/${encodeURIComponent(slug)}`);
   // Live while it runs, so results from scorers and teams appear without reloading.
   const { view: live } = useLive(slug, data && data.tournament.state !== "draft" ? data : null);
+  // Back from paying in the portal: a pass or Plus changes the limits.
+  useBackFromCheckout(reload);
 
   if (error && !data) return error.status === 404 ? <Empty icon="search" title="Turnier nicht gefunden">Diese Adresse gibt es nicht.</Empty> : <ErrorCard title="Das Turnier hat nicht geladen" error={error} onRetry={reload} />;
   if (!data) {

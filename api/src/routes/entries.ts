@@ -24,7 +24,7 @@ entriesApp.post('/t/:id/entries', async (c) => {
   const b = await loadBundle(c.env, t);
   const role = await roleOf(c.env, t, person, b.organisers);
   const features = await featuresOf(c.env, t);
-  await rememberPlan(c.env, t, features.plan, features.source);
+  await rememberPlan(c.env, t, features);
   const body = await readJson(c);
   const now = Date.now();
   if (!before(t.state)) throw conflict('Das Turnier hat schon begonnen. Anmelden geht nicht mehr.', 'already_started');

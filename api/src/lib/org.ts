@@ -4,7 +4,8 @@
 
 import type { Env } from '../env';
 
-export type PlanId = 'gratis' | 'event' | 'verein';
+/** The organisation's tier. The Turnier-Pass isn't a tier: it lifts one tournament (source 'event_pass'). */
+export type PlanId = 'gratis' | 'plus';
 
 export interface PlanLimits {
   maxTeams: number;
@@ -21,15 +22,26 @@ export interface PlanLimits {
 
 /** The same table as planary-org's src/plans.ts, for when it can't be asked. */
 export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
-  gratis: { maxTeams: 16, maxRunning: 1, maxOrganisers: 1, branding: false, checkIn: false, waitingList: false, export: false, matchDaySupport: false, invoice: false },
-  event: { maxTeams: 128, maxRunning: 1, maxOrganisers: 1, branding: true, checkIn: true, waitingList: true, export: true, matchDaySupport: true, invoice: false },
-  verein: { maxTeams: 128, maxRunning: null, maxOrganisers: 5, branding: true, checkIn: true, waitingList: true, export: true, matchDaySupport: true, invoice: true },
+  gratis: { maxTeams: 16, maxRunning: 1, maxOrganisers: 2, branding: false, checkIn: true, waitingList: false, export: false, matchDaySupport: false, invoice: false },
+  plus: { maxTeams: 128, maxRunning: null, maxOrganisers: 10, branding: true, checkIn: true, waitingList: true, export: true, matchDaySupport: true, invoice: true },
 };
 
-export const PLAN_NAME: Record<PlanId, string> = { gratis: 'Gratis', event: 'Event', verein: 'Verein' };
+/** What a Turnier-Pass gives the one tournament it was bought for. */
+export const PASS_LIMITS: PlanLimits = { maxTeams: 128, maxRunning: 1, maxOrganisers: 10, branding: true, checkIn: true, waitingList: true, export: true, matchDaySupport: false, invoice: false };
+
+export const PLAN_NAME: Record<PlanId, string> = { gratis: 'Gratis', plus: 'Plus' };
+
+/** Older planary-org builds and stored rows still say verein or event. */
+export function planOf(v: unknown): { plan: PlanId; pass: boolean } {
+  if (v === 'plus' || v === 'verein') return { plan: 'plus', pass: false };
+  if (v === 'event') return { plan: 'gratis', pass: true };
+  return { plan: 'gratis', pass: false };
+}
 
 export interface Limits {
   plan: PlanId;
+  /** A Turnier-Pass lifts this tournament to Plus's tournament limits. */
+  pass: boolean;
   limits: PlanLimits;
   /** Live tournaments the owner (organisation or person) has now; null when unknown. */
   running: number | null;
@@ -56,14 +68,28 @@ async function call<T>(env: Env, path: string, init?: RequestInit): Promise<T | 
   }
 }
 
-/** The limits for a tournament (or a new one). `cached` is the plan stored on the tournament. */
-export async function limitsFor(env: Env, q: { user: string; org?: string | null; tournament?: string | null }, cached: PlanId = 'gratis'): Promise<Limits> {
+/** The limits of a tournament with or without its pass. */
+export const limitsOf = (plan: PlanId, pass: boolean): PlanLimits => (pass && plan === 'gratis' ? PASS_LIMITS : PLAN_LIMITS[plan]);
+
+/**
+ * The limits for a tournament (or a new one). `cached` is what was stored on the tournament,
+ * used when planary-org doesn't answer.
+ */
+export async function limitsFor(
+  env: Env,
+  q: { user: string; org?: string | null; tournament?: string | null },
+  cached: { plan: PlanId; pass: boolean } = { plan: 'gratis', pass: false },
+): Promise<Limits> {
   const p = new URLSearchParams({ user: q.user });
   if (q.org) p.set('org', q.org);
   if (q.tournament) p.set('tournament', q.tournament);
-  const r = await call<{ plan: PlanId; limits: PlanLimits; running: number; source: Limits['source'] }>(env, `/limits?${p}`);
-  if (r && r.plan in PLAN_LIMITS) return { plan: r.plan, limits: { ...PLAN_LIMITS[r.plan], ...r.limits }, running: r.running, source: r.source };
-  return { plan: cached, limits: PLAN_LIMITS[cached], running: null, source: 'fallback' };
+  const r = await call<{ plan: string; limits: PlanLimits; running: number; source: Limits['source'] }>(env, `/limits?${p}`);
+  if (r && typeof r.plan === 'string') {
+    const { plan, pass } = planOf(r.plan);
+    const hasPass = pass || r.source === 'event_pass';
+    return { plan, pass: hasPass, limits: { ...limitsOf(plan, hasPass), ...r.limits }, running: r.running, source: hasPass ? 'event_pass' : r.source };
+  }
+  return { plan: cached.plan, pass: cached.pass, limits: limitsOf(cached.plan, cached.pass), running: null, source: 'fallback' };
 }
 
 export async function membership(env: Env, orgId: string, user: string): Promise<'owner' | 'member' | null> {

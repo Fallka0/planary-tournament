@@ -15,6 +15,8 @@ import {
   publicView,
   publish,
   rememberPlan,
+  releaseQueued,
+  roomToRun,
   requireRole,
   roleOf,
   settle,
@@ -38,7 +40,7 @@ export async function viewFor(c: Context<AppEnv>, b: Bundle, features: Limits, p
   const role = await roleOf(c.env, b.t, person, b.organisers);
   const view = publicView(c, b, features.limits);
   const mine = person ? b.entries.find((e) => e.user_id === person.id) : undefined;
-  return { ...view, me: person ? { role, entryId: mine?.id ?? null } : null, limits: role ? { plan: features.plan, planName: PLAN_NAME[features.plan], ...features.limits } : null };
+  return { ...view, me: person ? { role, entryId: mine?.id ?? null } : null, limits: role ? { plan: features.plan, planName: PLAN_NAME[features.plan], pass: features.pass, ...features.limits } : null };
 }
 
 /** Loads, checks the role, and returns everything a write needs. */
@@ -49,7 +51,7 @@ export async function forWrite(c: Context<AppEnv>, need: 'run' | 'score' | 'own'
   const role = await roleOf(c.env, t, person, b.organisers);
   requireRole(role, need);
   const features = await featuresOf(c.env, t);
-  await rememberPlan(c.env, t, features.plan, features.source);
+  await rememberPlan(c.env, t, features);
   return { person, t, b, role, features };
 }
 
@@ -67,6 +69,7 @@ export async function done(c: Context<AppEnv>, t: TournamentRow, features: Limit
     }
   }
   await publish(c, b, features.limits);
+  if (b.t.state === 'done') await releaseQueued(c, b.t);
   return c.json(await viewFor(c, b, features, person));
 }
 
@@ -102,7 +105,7 @@ function settingsFrom(b: Record<string, unknown>, base: Settings, limits: Limits
   const entryType = pick('entryType', (v) => oneOf(v, ENTRY_TYPES) ?? fail('Solo oder Team?', 'invalid_entry_type'), base.entry_type) as Settings['entry_type'];
   const maxTeams = pick('maxTeams', (v) => int(v, 2, 512, base.max_teams), base.max_teams);
   if (maxTeams > limits.maxTeams) {
-    throw new ApiError(403, `Im Plan ${plan} sind bis ${limits.maxTeams} Teams möglich. Für grössere Turniere wechselst du im Portal den Plan.`, 'plan_team_limit');
+    throw new ApiError(403, `Im Plan ${plan} sind bis ${limits.maxTeams} Teams möglich. Bis 128 Teams mit dem Turnier-Pass für dieses Turnier oder mit Plus.`, 'plan_team_limit');
   }
   const startsAt = pick('startsAt', time, base.starts_at);
   const endsAt = pick('endsAt', time, base.ends_at);
@@ -113,10 +116,10 @@ function settingsFrom(b: Record<string, unknown>, base: Settings, limits: Limits
   if (opensAt && closesAt && closesAt <= opensAt) throw bad('Die Anmeldung schliesst, bevor sie öffnet.', 'invalid_time');
   const checkIn = pick('checkIn', (v) => (bool(v) ? 1 : 0), base.check_in);
   const waitingList = pick('waitingList', (v) => (bool(v) ? 1 : 0), base.waiting_list);
-  if (checkIn && !base.check_in && !limits.checkIn) throw new ApiError(403, `Check-in gibt es ab Plan Event. Dein Turnier läuft im Plan ${plan}.`, 'plan_feature');
-  if (waitingList && !base.waiting_list && !limits.waitingList) throw new ApiError(403, `Die Warteliste gibt es ab Plan Event. Dein Turnier läuft im Plan ${plan}.`, 'plan_feature');
+  if (checkIn && !base.check_in && !limits.checkIn) throw new ApiError(403, `Check-in gibt es in deinem Plan nicht.`, 'plan_feature');
+  if (waitingList && !base.waiting_list && !limits.waitingList) throw new ApiError(403, `Die Warteliste gibt es mit dem Turnier-Pass oder mit Plus. Dein Turnier läuft im Plan ${plan}.`, 'plan_feature');
   const color = pick('brandColor', (v) => (v === null || v === '' ? null : COLOR.test(String(v).toLowerCase()) ? String(v).toLowerCase() : fail('Die Farbe ist ein Hex-Wert wie #1f1b3a.', 'invalid_color')), base.brand_color);
-  if (color && color !== base.brand_color && !limits.branding) throw new ApiError(403, `Eigene Farben gibt es ab Plan Event. Dein Turnier läuft im Plan ${plan}.`, 'plan_feature');
+  if (color && color !== base.brand_color && !limits.branding) throw new ApiError(403, `Eigene Farben gibt es mit dem Turnier-Pass oder mit Plus. Dein Turnier läuft im Plan ${plan}.`, 'plan_feature');
   return {
     name: pick('name', (v) => requireText(v, 'Der Name', 80, { min: 3, code: 'invalid_name' }), base.name),
     game: pick('game', (v) => requireText(v, 'Das Spiel', 60, { code: 'invalid_game' }), base.game),
@@ -202,7 +205,17 @@ tournamentsApp.post('/tournaments', async (c) => {
   } else {
     slug = await freeSlug(c, slugify(s.name));
   }
-  const state = bool(b.publish) ? 'open' : 'draft';
+  // Gratis: one tournament at a time. It can wait as a draft and go out when the running one ends.
+  let state: 'open' | 'draft' = bool(b.publish) ? 'open' : 'draft';
+  let queued = 0;
+  if (state === 'open') {
+    const room = await roomToRun(c.env, { organisation_id: orgId, owner_id: person.id }, limits);
+    if (!room.ok) {
+      if (!bool(b.publishWhenFree)) throw runningLimit(limits.plan, room.live);
+      state = 'draft';
+      queued = 1;
+    }
+  }
   const id = randomId('t');
   const now = Date.now();
   const cols = {
@@ -214,7 +227,9 @@ tournamentsApp.post('/tournaments', async (c) => {
     organisation_name: orgName,
     ...s,
     state,
+    publish_when_free: queued,
     plan: limits.plan,
+    has_pass: limits.pass ? 1 : 0,
     created_at: now,
     updated_at: now,
   };
@@ -227,7 +242,48 @@ tournamentsApp.post('/tournaments', async (c) => {
   } catch {
     await work;
   }
-  return c.json({ id, slug });
+  return c.json({ id, slug, queued: !!queued });
+});
+
+function runningLimit(plan: Limits['plan'], live: { name: string }[]) {
+  const name = live[0]?.name;
+  return new ApiError(
+    403,
+    `Im Plan ${PLAN_NAME[plan]} läuft ein Turnier aufs Mal${name ? `, und ${name} läuft gerade` : ''}. Mit dem Turnier-Pass oder mit Plus geht es sofort, sonst geht es raus, sobald das laufende fertig ist.`,
+    'plan_running_limit',
+  );
+}
+
+/** The plan for a new or existing tournament, and what is live in the way, for the forms. */
+tournamentsApp.get('/limits', async (c) => {
+  const person = await requirePerson(c);
+  const tid = c.req.query('tournament');
+  let org = c.req.query('org') || null;
+  let owner = person.id;
+  let except: string | undefined;
+  let features: Limits;
+  if (tid) {
+    const t = await loadTournament(c.env, tid);
+    const b = await loadBundle(c.env, t);
+    if (!(await roleOf(c.env, t, person, b.organisers))) throw notFound('Dieses Turnier gibt es nicht (mehr).');
+    features = await featuresOf(c.env, t);
+    await rememberPlan(c.env, t, features);
+    org = t.organisation_id;
+    owner = t.owner_id;
+    except = t.id;
+  } else {
+    if (org && !(await membership(c.env, org, person.id))) throw forbidden('Du bist nicht Mitglied dieser Organisation.', 'not_member');
+    features = await limitsFor(c.env, { user: person.id, org });
+  }
+  const room = await roomToRun(c.env, { organisation_id: org, owner_id: owner }, features, except);
+  return c.json({
+    plan: features.plan,
+    planName: PLAN_NAME[features.plan],
+    pass: features.pass,
+    limits: features.limits,
+    canRun: room.ok,
+    live: room.live,
+  });
 });
 
 tournamentsApp.get('/t/:id', async (c) => {
@@ -288,8 +344,22 @@ export async function promoteWaiting(c: Context<AppEnv>, t: TournamentRow, featu
 tournamentsApp.post('/t/:id/publish', async (c) => {
   const { t, features, person } = await forWrite(c, 'run');
   if (t.state !== 'draft') throw conflict('Das Turnier ist schon veröffentlicht.', 'not_draft');
-  await c.env.DB.prepare("UPDATE tournaments SET state = 'open' WHERE id = ?").bind(t.id).run();
-  return done(c, { ...t, state: 'open' }, features, person);
+  const body = await readJson(c);
+  const room = await roomToRun(c.env, t, features, t.id);
+  if (!room.ok) {
+    if (!bool(body.whenFree)) throw runningLimit(features.plan, room.live);
+    await c.env.DB.prepare('UPDATE tournaments SET publish_when_free = 1 WHERE id = ?').bind(t.id).run();
+    return done(c, { ...t, publish_when_free: 1 }, features, person);
+  }
+  await c.env.DB.prepare("UPDATE tournaments SET state = 'open', publish_when_free = 0 WHERE id = ?").bind(t.id).run();
+  return done(c, { ...t, state: 'open', publish_when_free: 0 }, features, person);
+});
+
+/** Takes a draft out of the queue again (it stays a draft). */
+tournamentsApp.post('/t/:id/publish/cancel', async (c) => {
+  const { t, features, person } = await forWrite(c, 'run');
+  await c.env.DB.prepare('UPDATE tournaments SET publish_when_free = 0 WHERE id = ?').bind(t.id).run();
+  return done(c, { ...t, publish_when_free: 0 }, features, person);
 });
 
 tournamentsApp.post('/t/:id/unpublish', async (c) => {
@@ -321,19 +391,8 @@ tournamentsApp.post('/t/:id/start', async (c) => {
   if (f.plays.length < 2) throw conflict('Für den Start braucht es mindestens zwei Teams.', 'too_few_entries');
 
   // Running tournaments at the same time: what planary-org knows, or what is live here.
-  if (features.limits.maxRunning !== null) {
-    const local = t.organisation_id
-      ? await c.env.DB.prepare("SELECT COUNT(*) AS n FROM tournaments WHERE state = 'live' AND organisation_id = ?").bind(t.organisation_id).first<{ n: number }>()
-      : await c.env.DB.prepare("SELECT COUNT(*) AS n FROM tournaments WHERE state = 'live' AND organisation_id IS NULL AND owner_id = ?").bind(t.owner_id).first<{ n: number }>();
-    const running = Math.max(features.running ?? 0, local?.n ?? 0);
-    if (running >= features.limits.maxRunning) {
-      throw new ApiError(
-        403,
-        `Im Plan ${PLAN_NAME[features.plan]} läuft ${features.limits.maxRunning === 1 ? 'ein Turnier' : `${features.limits.maxRunning} Turniere`} gleichzeitig. Schliess das laufende zuerst ab, oder wechsle im Portal den Plan.`,
-        'plan_running_limit',
-      );
-    }
-  }
+  const room = await roomToRun(c.env, t, features, t.id);
+  if (!room.ok) throw runningLimit(features.plan, room.live);
 
   const now = Date.now();
   const plays = new Set(f.plays.map((e) => e.id));
@@ -442,7 +501,7 @@ tournamentsApp.post('/t/:id/organisers', async (c) => {
   if (p.user_id === t.owner_id) throw conflict('Diese Person leitet das Turnier schon.', 'already_organiser');
   const exists = b.organisers.some((o) => o.user_id === p.user_id);
   if (!exists && b.organisers.length + 1 >= features.limits.maxOrganisers) {
-    throw new ApiError(403, `Im Plan ${PLAN_NAME[features.plan]} ${features.limits.maxOrganisers === 1 ? 'leitest du das Turnier allein' : `leiten bis ${features.limits.maxOrganisers} Personen ein Turnier`}. Mehr gibt es im Plan Verein.`, 'plan_organiser_limit');
+    throw new ApiError(403, `Im Plan ${PLAN_NAME[features.plan]} ${features.limits.maxOrganisers === 1 ? 'leitest du das Turnier allein' : `leiten bis ${features.limits.maxOrganisers} Personen ein Turnier`}. Bis 10 mit dem Turnier-Pass oder mit Plus.`, 'plan_organiser_limit');
   }
   await c.env.DB.prepare('INSERT INTO organisers (tournament_id, user_id, name, role, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT (tournament_id, user_id) DO UPDATE SET role = excluded.role')
     .bind(t.id, p.user_id, p.name, role, Date.now())
@@ -462,7 +521,7 @@ tournamentsApp.delete('/t/:id/organisers/:uid', async (c) => {
 
 tournamentsApp.post('/t/:id/logo', async (c) => {
   const { t, features, person } = await forWrite(c, 'run');
-  if (!features.limits.branding) throw new ApiError(403, `Ein eigenes Logo gibt es ab Plan Event. Dein Turnier läuft im Plan ${PLAN_NAME[features.plan]}.`, 'plan_feature');
+  if (!features.limits.branding) throw new ApiError(403, `Ein eigenes Logo gibt es mit dem Turnier-Pass oder mit Plus. Dein Turnier läuft im Plan ${PLAN_NAME[features.plan]}.`, 'plan_feature');
   const key = await storeImage(c.env, await c.req.formData(), `tournaments/${t.id}`);
   await c.env.DB.prepare('UPDATE tournaments SET brand_logo_key = ? WHERE id = ?').bind(key, t.id).run();
   await dropImage(c.env, t.brand_logo_key);

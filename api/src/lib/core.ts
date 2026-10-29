@@ -6,7 +6,7 @@ import { buildBracketProgressionChanges } from '../../../src/shared/bracket';
 import { currentPhase } from '../../../src/shared/rounds';
 import type { Match, MatchFormat, Participant, TournamentEntryType, TournamentMode } from '../../../src/shared/types';
 import type { AppEnv, Env, PersonCtx } from '../env';
-import { limitsFor, membership, PLAN_LIMITS, sendEvent, type PlanId, type PlanLimits } from './org';
+import { limitsFor, membership, PLAN_LIMITS, sendEvent, type Limits, type PlanId, type PlanLimits } from './org';
 import { schedule } from './schedule';
 import { DAY, forbidden, MINUTE, notFound } from './util';
 
@@ -46,6 +46,10 @@ export interface TournamentRow {
   brand_logo_key: string | null;
   brand_color: string | null;
   plan: PlanId;
+  /** 1 when a Turnier-Pass lifts this tournament (as planary-org last said). */
+  has_pass: number;
+  /** 1 while a draft waits to be published until the owner's running tournament ends (Gratis). */
+  publish_when_free: number;
   version: number;
   created_at: number;
   updated_at: number;
@@ -151,7 +155,7 @@ export function requireRole(role: Role | null, need: 'run' | 'score' | 'own') {
 
 /** Plan features this tournament may use. */
 export async function featuresOf(env: Env, t: TournamentRow) {
-  return limitsFor(env, { user: t.owner_id, org: t.organisation_id, tournament: t.id }, t.plan);
+  return limitsFor(env, { user: t.owner_id, org: t.organisation_id, tournament: t.id }, { plan: t.plan, pass: !!t.has_pass });
 }
 
 export const participantsOf = (entries: EntryRow[], tid: string): Participant[] =>
@@ -233,6 +237,8 @@ export function publicView(c: Context<AppEnv> | { env: Env; origin: string }, b:
       breakMinutes: t.break_minutes,
       brand: branded ? { logoUrl: fileUrl(c, t.brand_logo_key), color: t.brand_color } : null,
       plan: t.plan,
+      pass: !!t.has_pass,
+      queued: !!t.publish_when_free,
       owner: { id: t.owner_id, name: t.owner_name },
       organisation: t.organisation_id ? { id: t.organisation_id, name: t.organisation_name ?? '' } : null,
       counts: { confirmed: confirmed.length, waiting: waiting.length, checkedIn: confirmed.filter((e) => e.checked_in_at).length },
@@ -424,10 +430,48 @@ export function orgEvent(b: Bundle, kind: 'created' | 'updated', viewers = 0) {
 }
 
 /** Stores the plan planary-org reported, so a later outage keeps the right limits. */
-export async function rememberPlan(env: Env, t: TournamentRow, plan: PlanId, source: string) {
-  if (source !== 'fallback' && plan !== t.plan) {
-    await env.DB.prepare('UPDATE tournaments SET plan = ? WHERE id = ?').bind(plan, t.id).run();
-    t.plan = plan;
+export async function rememberPlan(env: Env, t: TournamentRow, features: Limits) {
+  const pass = features.pass ? 1 : 0;
+  if (features.source !== 'fallback' && (features.plan !== t.plan || pass !== t.has_pass)) {
+    await env.DB.prepare('UPDATE tournaments SET plan = ?, has_pass = ? WHERE id = ?').bind(features.plan, pass, t.id).run();
+    t.plan = features.plan;
+    t.has_pass = pass;
+  }
+}
+
+/** The owner's live tournaments (in the organisation's name, or the person's own). */
+export async function liveOf(env: Env, owner: { organisation_id: string | null; owner_id: string }, except?: string) {
+  const q = owner.organisation_id
+    ? env.DB.prepare("SELECT id, slug, name FROM tournaments WHERE state = 'live' AND organisation_id = ? AND id <> ? ORDER BY started_at").bind(owner.organisation_id, except ?? '')
+    : env.DB.prepare("SELECT id, slug, name FROM tournaments WHERE state = 'live' AND organisation_id IS NULL AND owner_id = ? AND id <> ? ORDER BY started_at").bind(owner.owner_id, except ?? '');
+  return (await q.all<{ id: string; slug: string; name: string }>()).results;
+}
+
+/** Whether the plan lets one more tournament go out now; `live` names the ones in the way. */
+export async function roomToRun(env: Env, owner: { organisation_id: string | null; owner_id: string }, features: Limits, except?: string) {
+  const live = await liveOf(env, owner, except);
+  // A pass covers the tournament it was bought for, whatever else is live.
+  if (features.limits.maxRunning === null || features.pass) return { ok: true, live };
+  const running = Math.max(features.running ?? 0, live.length);
+  return { ok: running < features.limits.maxRunning, live };
+}
+
+/**
+ * After a tournament ends: the owner's drafts waiting for room go out, oldest first, as many as
+ * the plan lets run at once.
+ */
+export async function releaseQueued(c: Context<AppEnv>, ended: TournamentRow) {
+  const owner = ended.organisation_id
+    ? c.env.DB.prepare("SELECT * FROM tournaments WHERE publish_when_free = 1 AND state = 'draft' AND organisation_id = ? ORDER BY created_at").bind(ended.organisation_id)
+    : c.env.DB.prepare("SELECT * FROM tournaments WHERE publish_when_free = 1 AND state = 'draft' AND organisation_id IS NULL AND owner_id = ? ORDER BY created_at").bind(ended.owner_id);
+  const { results } = await owner.all<TournamentRow>();
+  for (const t of results) {
+    const features = await featuresOf(c.env, t);
+    const room = await roomToRun(c.env, t, features, t.id);
+    if (!room.ok) break;
+    await c.env.DB.prepare("UPDATE tournaments SET state = 'open', publish_when_free = 0, version = version + 1, updated_at = ? WHERE id = ?").bind(Date.now(), t.id).run();
+    const b = await loadBundle(c.env, { ...t, state: 'open', publish_when_free: 0 });
+    await publish(c, b, features.limits);
   }
 }
 

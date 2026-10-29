@@ -3,9 +3,9 @@ import { defineConfig } from 'vitest/config';
 
 // Tests run inside the Workers runtime with a local D1, R2 and the TournamentRoom object.
 // AUTH stands in for planary-auth: "Bearer test|<id>|<email>|<name>" is that person.
-// ORG stands in for planary-org: an organisation id containing "verein" has plan Verein (members
+// ORG stands in for planary-org: an organisation id containing "verein" has plan Plus (members
 // u_owner as owner, u_member as member); a tournament owned by an account id containing "event"
-// has an event pass; everything else is Gratis.
+// has a Turnier-Pass; everything else is Gratis.
 export default defineConfig(async () => {
   const migrations = await readD1Migrations('migrations');
   return {
@@ -34,15 +34,16 @@ export default defineConfig(async () => {
               if (req.headers.get('x-internal-key') !== 'test-internal-key') return new Response('{}', { status: 404 });
               const url = new URL(req.url);
               const LIMITS = {
-                gratis: { maxTeams: 16, maxRunning: 1, maxOrganisers: 1, branding: false, checkIn: false, waitingList: false, export: false, matchDaySupport: false, invoice: false },
-                event: { maxTeams: 128, maxRunning: 1, maxOrganisers: 1, branding: true, checkIn: true, waitingList: true, export: true, matchDaySupport: true, invoice: false },
-                verein: { maxTeams: 128, maxRunning: null, maxOrganisers: 5, branding: true, checkIn: true, waitingList: true, export: true, matchDaySupport: true, invoice: true },
+                gratis: { maxTeams: 16, maxRunning: 1, maxOrganisers: 2, branding: false, checkIn: true, waitingList: false, export: false, matchDaySupport: false, invoice: false },
+                pass: { maxTeams: 128, maxRunning: 1, maxOrganisers: 10, branding: true, checkIn: true, waitingList: true, export: true, matchDaySupport: false, invoice: false },
+                plus: { maxTeams: 128, maxRunning: null, maxOrganisers: 10, branding: true, checkIn: true, waitingList: true, export: true, matchDaySupport: true, invoice: true },
               };
               if (url.pathname === '/internal/limits') {
                 const org = url.searchParams.get('org') ?? '';
                 const user = url.searchParams.get('user') ?? '';
-                const plan = org.includes('verein') ? 'verein' : user.includes('event') ? 'event' : 'gratis';
-                return Response.json({ plan, limits: LIMITS[plan], running: 0, source: org ? 'organisation' : plan === 'event' ? 'event_pass' : 'person' });
+                const plan = org.includes('verein') ? 'plus' : 'gratis';
+                const pass = plan === 'gratis' && user.includes('event');
+                return Response.json({ plan, limits: LIMITS[pass ? 'pass' : plan], running: 0, source: org ? 'organisation' : pass ? 'event_pass' : 'person' });
               }
               const m = url.pathname.match(/^\/internal\/orgs\/([^/]+)\/membership$/);
               if (m) {
@@ -57,7 +58,7 @@ export default defineConfig(async () => {
                   orgs:
                     p[1] === 'u_owner' || p[1] === 'u_member'
                       ? [
-                          { id: 'org_verein', name: 'Verein Gurten LAN', initials: 'GL', role: p[1] === 'u_owner' ? 'owner' : 'member', plan: 'verein', services: ['tournament', 'wishlist'] },
+                          { id: 'org_verein', name: 'Verein Gurten LAN', initials: 'GL', role: p[1] === 'u_owner' ? 'owner' : 'member', plan: 'plus', services: ['tournament', 'wishlist'] },
                           ...(p[1] === 'u_member' ? [{ id: 'org_wish', name: 'Wunschclub', initials: 'WU', role: 'owner', plan: 'gratis', services: ['wishlist'] }] : []),
                         ]
                       : [],

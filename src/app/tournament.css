@@ -709,3 +709,44 @@ button.bm:hover{box-shadow:0 0 0 1px #5a5a64}
 }
 /* A bracket round is never wider than a readable match box, even when it's the only round. */
 .ex .bk{grid-auto-columns:minmax(150px,300px)}
+
+/* Plan limits: said before they are met, liftable in place (pricing handoff, tournament-limits.css). */
+.plan-k{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--rule-s);font-size:11px;font-weight:700;color:var(--t2);vertical-align:middle}
+.stepper.at-cap button:last-child{position:relative;color:var(--t2)}
+.stepper.at-cap button:last-child::after{content:"";position:absolute;right:5px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--live)}
+.stepper input{width:64px;height:40px;border:0;background:none;text-align:center;font:400 20px/1 var(--disp);letter-spacing:-.03em;color:var(--ink);-moz-appearance:textfield;appearance:textfield}
+.stepper input::-webkit-inner-spin-button,.stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.lim{margin-top:4px;padding:20px;border-radius:18px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--rule-s)}
+.lim-h{display:flex;gap:14px;align-items:flex-start}
+.lim-i{width:36px;height:36px;flex:none;border-radius:11px;display:grid;place-items:center;background:var(--panel2)}
+.lim-h h3{font:400 18px/1.2 var(--disp);letter-spacing:-.03em}
+.lim-h p{margin-top:4px;font-size:13px;color:var(--t2)}
+.lim-o{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+.lim-o.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.lo{display:grid;gap:4px;align-content:start;padding:16px;border-radius:14px;background:var(--raise);box-shadow:inset 0 0 0 1px var(--rule)}
+.lo-n{font-size:13px;font-weight:700}
+.lo-p{font:300 26px/1.1 var(--disp);letter-spacing:-.05em;margin-top:2px}
+.lo-p small{font:500 12px/1 var(--body);letter-spacing:0;color:var(--t2);margin-left:6px}
+.lo-s{font-size:13px;color:var(--t2)}
+.lo .btn{margin-top:12px;justify-self:start}
+.lim-f{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.lim-f span{flex:1;min-width:200px;font-size:12px;color:var(--t2)}
+.lockrow{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border:0;border-radius:16px;background:var(--panel);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.lockrow .m{flex:1;display:grid;gap:2px}
+.lockrow .m b{font-size:14px}
+.lockrow .m span{font-size:13px;color:var(--t2)}
+.lockrow .sw{width:40px;height:24px;border-radius:999px;background:var(--rule-s);position:relative;flex:none;opacity:.45}
+.lockrow .sw::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+.lockrow.open{box-shadow:inset 0 0 0 1px var(--rule-s)}
+.pop{position:relative;margin-top:8px;padding:16px;border-radius:16px;background:var(--raise);box-shadow:var(--shadow)}
+.pop::before{content:"";position:absolute;top:-6px;right:34px;width:12px;height:12px;background:var(--raise);transform:rotate(45deg)}
+.pop p{font-size:13px;color:var(--t2)}
+.pop p b{color:var(--ink)}
+.pop .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media (max-width:720px){.lim-o,.lim-o.three{grid-template-columns:minmax(0,1fr)}.lim{padding:16px}}
+.stepper button span{font:400 20px/1 var(--body);color:inherit}
+.stepper button{border:0;background:none;color:var(--ink);font:inherit;width:40px;height:40px;border-radius:9px;display:grid;place-items:center;cursor:pointer}
+.stepper button:disabled{color:var(--t3);cursor:default}
+.lo .btn{max-width:100%;white-space:normal;height:auto;min-height:36px;text-align:left}
+.stepper{display:flex;align-items:center;gap:4px;padding:3px;border-radius:12px;background:var(--panel);width:max-content}
+.stepper button:not(:disabled):hover{background:var(--panel2)}

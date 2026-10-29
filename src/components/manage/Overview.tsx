@@ -10,7 +10,8 @@ import { useAuth } from "../AuthProvider";
 import { PORTAL_URL } from "@/lib/auth";
 import { matchStatus } from "@/lib/bracket-view";
 import { time, tourDateLong } from "@/lib/fmt";
-import type { Banner, TournamentView } from "@/lib/types";
+import type { Banner, LimitsInfo, TournamentView } from "@/lib/types";
+import { RunningLimit, upgradeFor, useBackFromCheckout } from "../PlanLimits";
 
 function StartDialog({ v, onClose }: { v: TournamentView; onClose: () => void }) {
   const { accessToken } = useAuth();
@@ -83,6 +84,15 @@ export function Overview({ v }: { v: TournamentView }) {
   const t = v.tournament;
   const { run, busy } = useRun();
   const [starting, setStarting] = useState(false);
+  // Gratis: one tournament at a time. A draft can wait for the running one, or the limit is lifted.
+  const { data: lim, reload: reloadLim } = useApi<LimitsInfo>(t.state === "draft" ? `/limits?tournament=${encodeURIComponent(t.id)}` : null);
+  const [blocked, setBlocked] = useState(false);
+  const upgrade = upgradeFor(v);
+  useBackFromCheckout(reloadLim);
+  const publishNow = () => {
+    if (lim && !lim.canRun && upgrade) setBlocked(true);
+    else void run(`/t/${t.id}/publish`, {}, "Die Anmeldung ist offen.");
+  };
   const { data: banners } = useApi<{ banners: Banner[] }>(`/t/${t.id}/banners`, 60_000);
   const playable = v.matches.filter((m) => m.participant_a && m.participant_b);
   const played = playable.filter((m) => m.winner).length;
@@ -165,10 +175,20 @@ export function Overview({ v }: { v: TournamentView }) {
               );
             })}
           </ol>
+          {t.state === "draft" && blocked && upgrade && lim && !lim.canRun ? (
+            <RunningLimit running={lim.live[0]?.name ?? "Ein anderes Turnier"} upgrade={upgrade} busy={busy} onLater={() => void run(`/t/${t.id}/publish`, { whenFree: true }, "Gespeichert. Es geht raus, sobald das laufende fertig ist.").then(() => setBlocked(false))} />
+          ) : null}
           <div className="acts-row">
-            {t.state === "draft" ? (
+            {t.state === "draft" && t.queued ? (
               <>
-                <button className="btn btn-ink" type="button" disabled={busy} onClick={() => run(`/t/${t.id}/publish`, {}, "Die Anmeldung ist offen.")}>
+                <p className="box-s grow">Geht von selbst raus, sobald {lim?.live[0]?.name ?? "das laufende Turnier"} fertig ist.</p>
+                <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => run(`/t/${t.id}/publish/cancel`, {}, "Bleibt ein Entwurf.")}>
+                  Doch nicht
+                </button>
+              </>
+            ) : t.state === "draft" && blocked && upgrade && lim && !lim.canRun ? null : t.state === "draft" ? (
+              <>
+                <button className="btn btn-ink" type="button" disabled={busy} onClick={publishNow}>
                   Anmeldung öffnen
                 </button>
                 <button className="btn btn-line" type="button" disabled={busy} onClick={() => setStarting(true)}>
@@ -238,7 +258,7 @@ export function Overview({ v }: { v: TournamentView }) {
             </>
           ) : (
             <>
-              <p className="box-s" style={{ marginBottom: 12 }}>Support am Turniertag gibt es ab Plan Event.</p>
+              <p className="box-s" style={{ marginBottom: 12 }}>Support am Turniertag gibt es mit Plus.</p>
               <a className="btn btn-line btn-s" href="https://planary.ch/tournament#faq">
                 Hilfe ansehen
                 <Ic name="arrow-ur" small />

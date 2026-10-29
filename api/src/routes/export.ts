@@ -36,7 +36,7 @@ async function exporter(c: Context<AppEnv>) {
   const b = await loadBundle(c.env, t);
   requireRole(await roleOf(c.env, t, person, b.organisers), 'run');
   const features = await featuresOf(c.env, t);
-  if (!features.limits.export) throw new ApiError(403, `Den Export gibt es ab Plan Event. Dein Turnier läuft im Plan ${PLAN_NAME[features.plan]}.`, 'plan_feature');
+  if (!features.limits.export) throw new ApiError(403, `Den Export gibt es mit dem Turnier-Pass oder mit Plus. Dein Turnier läuft im Plan ${PLAN_NAME[features.plan]}.`, 'plan_feature');
   return b;
 }
 
