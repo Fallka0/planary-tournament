@@ -44,7 +44,9 @@ describe('creating', () => {
     const big = await json(post('/tournaments', { name: 'Gross', game: 'CS2', maxTeams: 32 }, MATTEO));
     expect(big.code).toBe('plan_team_limit');
     expect(big.error).toContain('bis 16 Teams');
-    expect((await json(post('/tournaments', { name: 'Check', game: 'CS2', checkIn: true }, MATTEO))).code).toBe('plan_feature');
+    expect((await json(post('/tournaments', { name: 'Warten', game: 'CS2', waitingList: true }, MATTEO))).code).toBe('plan_feature');
+    // Check-in is in Gratis: nothing that happens on the match day should be what breaks.
+    await ok(post('/tournaments', { name: 'Check', game: 'CS2', checkIn: true }, MATTEO));
     const ev = await ok(post('/tournaments', { name: 'Event', game: 'CS2', maxTeams: 64, checkIn: true, waitingList: true, brandColor: '#1F1B3A' }, EVENT));
     const v = await ok(get(`/t/${ev.id}`, EVENT));
     expect(v.tournament.checkIn).toBe(true);
@@ -57,7 +59,7 @@ describe('creating', () => {
     // A member of the organisation runs it with the owner.
     const v = await ok(get(`/t/${t.id}`, MEMBER));
     expect(v.me.role).toBe('admin');
-    expect(v.limits.planName).toBe('Verein');
+    expect(v.limits.planName).toBe('Plus');
     const mine = await ok(get('/tournaments?mine=1', MEMBER));
     expect(mine.organising.map((x: any) => x.id)).toEqual([t.id]);
     const me = await ok(get('/me', MEMBER));
@@ -195,13 +197,33 @@ describe('playing', () => {
     expect(v.matches[0]).toMatchObject({ score_a: 2, score_b: 1, winner: m.participant_a });
   });
 
-  it('allows one running tournament on Gratis', async () => {
+  it('allows one running tournament on Gratis, and queues the next until it ends', async () => {
     const a = await soloTournament(MATTEO, 2);
     await ok(post(`/t/${a}/start`, {}, MATTEO));
-    const { id: b } = await ok(post('/tournaments', { name: 'Zweites', game: 'CS2', entryType: 'solo', publish: true }, MATTEO));
-    await ok(post(`/t/${b}/entries`, { name: 'X' }, MATTEO));
-    await ok(post(`/t/${b}/entries`, { name: 'Y' }, MATTEO));
-    expect((await json(post(`/t/${b}/start`, {}, MATTEO))).code).toBe('plan_running_limit');
+    // While one is live, a second one can't go out, but it can wait.
+    expect((await json(post('/tournaments', { name: 'Zweites', game: 'CS2', entryType: 'solo', publish: true }, MATTEO))).code).toBe('plan_running_limit');
+    const { id: b, queued } = await ok(post('/tournaments', { name: 'Zweites', game: 'CS2', entryType: 'solo', publish: true, publishWhenFree: true }, MATTEO));
+    expect(queued).toBe(true);
+    const { id: c } = await ok(post('/tournaments', { name: 'Drittes', game: 'CS2', entryType: 'solo' }, MATTEO));
+    expect((await json(post(`/t/${c}/publish`, {}, MATTEO))).code).toBe('plan_running_limit');
+    const limits = await ok(get(`/limits?tournament=${c}`, MATTEO));
+    expect(limits).toMatchObject({ plan: 'gratis', canRun: false, live: [{ id: a, name: 'Gurten LAN' }] });
+    expect((await ok(get(`/t/${b}`, MATTEO))).tournament).toMatchObject({ state: 'draft', queued: true });
+    // The first one ends: the queued draft goes out by itself, the plain draft stays.
+    await ok(post(`/t/${a}/finish`, {}, MATTEO));
+    expect((await ok(get(`/t/${b}`, MATTEO))).tournament).toMatchObject({ state: 'open', queued: false });
+    expect((await ok(get(`/t/${c}`, MATTEO))).tournament.state).toBe('draft');
+    // Open sign-ups aren't running: it goes out now.
+    await ok(post(`/t/${c}/publish`, {}, MATTEO));
+  });
+
+  it('lets a tournament with a pass go out next to a running one', async () => {
+    const a = await soloTournament(EVENT, 2);
+    await ok(post(`/t/${a}/start`, {}, EVENT));
+    const { id } = await ok(post('/tournaments', { name: 'Mit Pass', game: 'CS2', entryType: 'solo', maxTeams: 64, publish: true }, EVENT));
+    const v = await ok(get(`/t/${id}`, EVENT));
+    expect(v.tournament).toMatchObject({ state: 'open', pass: true });
+    expect(v.limits).toMatchObject({ plan: 'gratis', pass: true, maxTeams: 128 });
   });
 });
 
@@ -210,7 +232,10 @@ describe('organisers', () => {
     const id = await soloTournament(MATTEO, 2);
     await ok(get('/me', PLAYERS[9]));
     const username = (await ok(get('/me', PLAYERS[9]))).me.username;
-    expect((await json(post(`/t/${id}/organisers`, { username, role: 'scorer' }, MATTEO))).code).toBe('plan_organiser_limit');
+    // Gratis: two organisers, the owner and one more.
+    await ok(post(`/t/${id}/organisers`, { username, role: 'scorer' }, MATTEO));
+    const other = (await ok(get('/me', PLAYERS[8]))).me.username;
+    expect((await json(post(`/t/${id}/organisers`, { username: other, role: 'scorer' }, MATTEO))).code).toBe('plan_organiser_limit');
 
     const t = await ok(post('/tournaments', { name: 'Verein', game: 'CS2', entryType: 'solo', organisationId: 'org_verein', publish: true }, OWNER));
     await ok(post(`/t/${t.id}/organisers`, { username, role: 'scorer' }, OWNER));
@@ -259,7 +284,7 @@ describe('profiles, logos and exports', () => {
     expect((await get('/files/../../etc/passwd')).status).toBe(404);
   });
 
-  it('exports CSV and PDF from plan Event', async () => {
+  it('exports CSV and PDF with a pass or Plus', async () => {
     const free = await soloTournament(MATTEO, 2);
     expect((await json(get(`/t/${free}/export.csv`, MATTEO))).code).toBe('plan_feature');
     const { id } = await ok(post('/tournaments', { name: 'Export', game: 'CS2', entryType: 'solo', publish: true }, EVENT));
